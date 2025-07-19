@@ -27,3 +27,22 @@ const getTransactionsData = async () => {
 
 // --- อัปเดตบรรทัด export ให้มีฟังก์ชันใหม่ไปด้วย ---
 export { getInventoryData, getTransactionsData };
+// ... (โค้ดเดิมด้านบน) ...
+
+// --- เพิ่มฟังก์ชันใหม่ตรงนี้ ---
+const deleteProduct = async (productId) => {
+  try {
+    const response = await axios.post(API_URL, {
+      action: 'delete',
+      table: 'inventory',
+      id: productId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    throw error;
+  }
+};
+
+// --- อัปเดตบรรทัด export ---
+export { getInventoryData, getTransactionsData, deleteProduct };
