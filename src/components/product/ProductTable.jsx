@@ -1,18 +1,47 @@
 import React, { useState, useMemo } from 'react';
 import { useReactTable, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, flexRender } from '@tanstack/react-table';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Box, Chip, Button, IconButton, Typography } from '@mui/material';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  Box,
+  Chip,
+  Button,
+  IconButton,
+  Typography,
+  Modal // Import Modal
+} from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
-import { useInventoryData, useDeleteProduct } from '../../hooks/useInventoryData';
+
+// Import all necessary hooks
+import { useInventoryData, useDeleteProduct, useCreateProduct } from '../../hooks/useInventoryData';
+import ProductForm from './ProductForm'; // Import the form component
 
 const ProductTable = () => {
-  // 1. เปลี่ยนมาใช้ Hook จาก React Query เพื่อดึงและจัดการข้อมูล
   const { data: products = [], isLoading, isError } = useInventoryData();
   const deleteMutation = useDeleteProduct();
-  
+  const createMutation = useCreateProduct(); // Hook for creating products
+
   const [globalFilter, setGlobalFilter] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false); // State to control the modal
+
+  // Function to handle form submission
+  const handleFormSubmit = (productData) => {
+    createMutation.mutate(productData, {
+      onSuccess: () => {
+        setIsModalOpen(false); // Close modal on success
+      },
+    });
+  };
 
   const columns = useMemo(
     () => [
+      // ... (Your existing columns are correct) ...
       { accessorKey: 'name', header: 'Product Name' },
       { accessorKey: 'category', header: 'Category', cell: info => <Chip label={info.getValue()} size="small" color="primary" variant="outlined" /> },
       { accessorKey: 'stock', header: 'Stock', cell: info => {
@@ -31,7 +60,6 @@ const ProductTable = () => {
             <IconButton size="small" onClick={() => console.log('Edit', row.original)}>
               <Edit />
             </IconButton>
-            {/* 2. เชื่อมต่อปุ่มลบกับ deleteMutation */}
             <IconButton
               size="small"
               onClick={() => {
@@ -39,7 +67,7 @@ const ProductTable = () => {
                   deleteMutation.mutate(row.original.id);
                 }
               }}
-              disabled={deleteMutation.isLoading} // ทำให้ปุ่มกดซ้ำไม่ได้ขณะกำลังลบ
+              disabled={deleteMutation.isLoading}
             >
               <Delete />
             </IconButton>
@@ -47,7 +75,7 @@ const ProductTable = () => {
         ),
       },
     ],
-    [] // Dependency array ว่างเปล่าเพราะ deleteMutation มีความเสถียร
+    []
   );
 
   const table = useReactTable({
@@ -61,13 +89,22 @@ const ProductTable = () => {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  // 3. แสดงสถานะ Loading และ Error เพื่อประสบการณ์ใช้งานที่ดีขึ้น
   if (isLoading) return <Typography>Loading products...</Typography>;
   if (isError) return <Typography color="error">Error fetching products.</Typography>;
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h4" gutterBottom>Product List</Typography>
+      {/* Header section with Title and Add Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>
+          Product List
+        </Typography>
+        <Button variant="contained" onClick={() => setIsModalOpen(true)}>
+          Add New Product
+        </Button>
+      </Box>
+
+      {/* Search Bar */}
       <Box sx={{ mb: 2 }}>
         <TextField
           value={globalFilter ?? ''}
@@ -75,9 +112,13 @@ const ProductTable = () => {
           variant="outlined"
           label="Search all columns"
           size="small"
+          fullWidth
         />
       </Box>
+
+      {/* The Table */}
       <TableContainer component={Paper} elevation={3}>
+        {/* ... (Your existing Table JSX is correct) ... */}
         <Table>
           <TableHead>
             {table.getHeaderGroups().map(headerGroup => (
@@ -104,6 +145,8 @@ const ProductTable = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Pagination Controls */}
       <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="body2">
           Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
@@ -113,6 +156,11 @@ const ProductTable = () => {
           <Button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
         </Box>
       </Box>
+
+      {/* The Modal for the form */}
+      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <ProductForm onSubmit={handleFormSubmit} onClose={() => setIsModalOpen(false)} />
+      </Modal>
     </Box>
   );
 };
