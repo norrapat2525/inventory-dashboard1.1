@@ -21,7 +21,7 @@ import { useInventoryData, useDeleteProduct, useCreateProduct, useUpdateProduct 
 import ProductForm from './ProductForm';
 
 const ProductTable = () => {
-  const { data: products = [] } = useInventoryData();
+  const { data: products = [], isLoading, isError } = useInventoryData();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
@@ -82,6 +82,9 @@ const ProductTable = () => {
   ], [deleteMutation, updateMutation]);
 
   const table = useReactTable({ data: products, columns, state: { globalFilter }, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getPaginationRowModel: getPaginationRowModel(), getSortedRowModel: getSortedRowModel() });
+
+  if (isLoading) return <Typography>Loading products...</Typography>;
+  if (isError) return <Typography color="error">Error fetching products.</Typography>;
 
   return (
     <Box sx={{ p: 2 }}>
