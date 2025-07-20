@@ -1,25 +1,24 @@
-// ตอนนี้เราจะใช้ Zustand โดยตรงแทน react-query เพื่อให้การทำงานเสถียร
 import useInventoryStore from '../stores/inventoryStore';
 
+// Hook นี้จะไปดึงข้อมูลจากคลังข้อมูลภายในแทน
 export const useInventoryData = () => {
   const products = useInventoryStore((state) => state.products);
-  // คืนค่าข้อมูลในรูปแบบเดียวกับ useQuery เพื่อให้กระทบส่วนอื่นน้อยที่สุด
   return { data: products, isLoading: false, isError: false };
 };
 
+// Hook นี้จะเรียกใช้ action 'addProduct' จากคลังข้อมูลภายใน
 export const useCreateProduct = () => {
   const addProduct = useInventoryStore((state) => state.addProduct);
-  // คืนค่าฟังก์ชัน mutate ให้เหมือนกับ useMutation ของ react-query
   return { mutate: addProduct };
 };
 
+// Hook นี้จะเรียกใช้ action 'deleteProduct' จากคลังข้อมูลภายใน
 export const useDeleteProduct = () => {
   const deleteProduct = useInventoryStore((state) => state.deleteProduct);
-  // คืนค่าฟังก์ชัน mutate ให้เหมือนกับ useMutation ของ react-query
   return { mutate: deleteProduct };
 };
 
-// สามารถปล่อย useTransactionsData ไว้เหมือนเดิม หรือสร้างเวอร์ชันจำลองในอนาคต
+// Hook นี้สามารถคงไว้เหมือนเดิมได้สำหรับตอนนี้
 export const useTransactionsData = () => {
     return { data: [], isLoading: false, isError: false };
 }

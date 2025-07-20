@@ -1,6 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import { useReactTable, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, flexRender } from '@tanstack/react-table';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Box, Chip, Button, IconButton, Typography, Modal } from '@mui/material';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  Box,
+  Chip,
+  Button,
+  IconButton,
+  Typography,
+  Modal
+} from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
 import { useInventoryData, useDeleteProduct, useCreateProduct } from '../../hooks/useInventoryData';
 import ProductForm from './ProductForm';
