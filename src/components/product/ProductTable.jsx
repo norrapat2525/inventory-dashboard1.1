@@ -21,7 +21,7 @@ import { useInventoryData, useDeleteProduct, useCreateProduct, useUpdateProduct 
 import ProductForm from './ProductForm';
 
 const ProductTable = () => {
-  const { data: products = [], isLoading, isError } = useInventoryData();
+  const { data: products = [] } = useInventoryData();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
