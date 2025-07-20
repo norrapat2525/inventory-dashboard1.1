@@ -1,6 +1,6 @@
 import useInventoryStore from '../stores/inventoryStore';
 
-// Hook นี้จะไปดึงข้อมูลจากคลังข้อมูลภายในแทน
+// Hook นี้จะไปดึงข้อมูลจากคลังข้อมูลภายใน
 export const useInventoryData = () => {
   const products = useInventoryStore((state) => state.products);
   return { data: products, isLoading: false, isError: false };
