@@ -1,47 +1,22 @@
-// src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { CssBaseline } from '@mui/material';
-import { InventoryProvider } from './context/InventoryContext'; // Note: We might replace or supplement this with Zustand later as per the guide
-import { QueryClient, QueryClientProvider } from 'react-query';
-import DashboardLayout from './components/layout/DashboardLayout'; // We will create this component soon
-import AppRoutes from './routes/AppRoutes'; // We will create this component soon
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-});
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 3,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+import ProductTable from './components/product/ProductTable';
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <InventoryProvider>
-          <Router>
-            <DashboardLayout>
-              <AppRoutes />
-            </DashboardLayout>
-          </Router>
-        </InventoryProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#f5f5f5',
+      padding: '20px'
+    }}>
+      <h1 style={{ 
+        textAlign: 'center', 
+        color: '#333',
+        marginBottom: '20px'
+      }}>
+        Inventory Dashboard - Test Mode
+      </h1>
+      <ProductTable />
+    </div>
   );
 }
 
