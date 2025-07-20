@@ -1,39 +1,25 @@
-import { useQuery, useMutation, useQueryClient } from 'react-query';
-import {
-  getInventoryData,
-  getTransactionsData,
-  createProduct,
-  deleteProduct,
-} from '../services/googleSheetsService';
+// ตอนนี้เราจะใช้ Zustand โดยตรงแทน react-query เพื่อให้การทำงานเสถียร
+import useInventoryStore from '../stores/inventoryStore';
 
-// Hook to get all inventory data
 export const useInventoryData = () => {
-  return useQuery('inventory', getInventoryData);
+  const products = useInventoryStore((state) => state.products);
+  // คืนค่าข้อมูลในรูปแบบเดียวกับ useQuery เพื่อให้กระทบส่วนอื่นน้อยที่สุด
+  return { data: products, isLoading: false, isError: false };
 };
 
-// Hook to get all transaction data
-export const useTransactionsData = () => {
-  return useQuery('transactions', getTransactionsData);
-};
-
-// Hook to create a new product
 export const useCreateProduct = () => {
-  const queryClient = useQueryClient();
-  return useMutation(createProduct, {
-    onSuccess: () => {
-      // When a product is created, refetch the inventory list
-      queryClient.invalidateQueries('inventory');
-    },
-  });
+  const addProduct = useInventoryStore((state) => state.addProduct);
+  // คืนค่าฟังก์ชัน mutate ให้เหมือนกับ useMutation ของ react-query
+  return { mutate: addProduct };
 };
 
-// Hook to delete a product
 export const useDeleteProduct = () => {
-  const queryClient = useQueryClient();
-  return useMutation(deleteProduct, {
-    onSuccess: () => {
-      // When a product is deleted, refetch the inventory list
-      queryClient.invalidateQueries('inventory');
-    },
-  });
+  const deleteProduct = useInventoryStore((state) => state.deleteProduct);
+  // คืนค่าฟังก์ชัน mutate ให้เหมือนกับ useMutation ของ react-query
+  return { mutate: deleteProduct };
 };
+
+// สามารถปล่อย useTransactionsData ไว้เหมือนเดิม หรือสร้างเวอร์ชันจำลองในอนาคต
+export const useTransactionsData = () => {
+    return { data: [], isLoading: false, isError: false };
+}
