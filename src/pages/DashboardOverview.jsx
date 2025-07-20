@@ -22,7 +22,7 @@ const StatCard = ({ title, value, icon, color }) => (
 </Card>
 );
 
-const DashboardOverview = () => {
+const ProductTable = () => {
 const products = useInventoryStore((state) => state.products);
 const getInventoryStats = useInventoryStore((state) => state.getInventoryStats);
 const stats = getInventoryStats();
@@ -136,4 +136,4 @@ return (
 );
 };
 
-export default DashboardOverview;
+export default ProductTable;
