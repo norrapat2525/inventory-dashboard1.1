@@ -21,7 +21,7 @@ import { useInventoryData, useDeleteProduct, useCreateProduct, useUpdateProduct 
 import ProductForm from './ProductForm';
 
 const ProductTable = () => {
-  const { data: products = [] } = useInventoryData();
+  const { data: products = [], isLoading, isError } = useInventoryData();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
@@ -73,21 +73,25 @@ const ProductTable = () => {
                 deleteMutation.mutate(row.original.id);
               }
             }}
+            disabled={deleteMutation.isLoading}
           >
             <Delete />
           </IconButton>
         </Box>
       ),
     },
-  ], [deleteMutation, updateMutation]);
+  ], []);
 
   const table = useReactTable({ data: products, columns, state: { globalFilter }, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getPaginationRowModel: getPaginationRowModel(), getSortedRowModel: getSortedRowModel() });
+
+  if (isLoading) return <Typography>Loading products...</Typography>;
+  if (isError) return <Typography color="error">Error fetching products.</Typography>;
 
   return (
     <Box sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>Product List</Typography>
-        <Button variant="contained" onClick={() => openModal()}>Add New Product</Button>
+        <Button variant="contained" onClick={() => openModal(null)}>Add New Product</Button>
       </Box>
 
       <Box sx={{ mb: 2 }}><TextField value={globalFilter ?? ''} onChange={e => setGlobalFilter(e.target.value)} variant="outlined" label="Search all columns" size="small" fullWidth /></Box>
