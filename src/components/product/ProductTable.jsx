@@ -1,16 +1,34 @@
 import React, { useState, useMemo } from 'react';
-// ... (import เดิม) ...
+import { useReactTable, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, flexRender } from '@tanstack/react-table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  Box,
+  Chip,
+  Button,
+  IconButton,
+  Typography,
+  Modal
+} from '@mui/material';
+import { Edit, Delete } from '@mui/icons-material';
 import { useInventoryData, useDeleteProduct, useCreateProduct, useUpdateProduct } from '../../hooks/useInventoryData';
-// ... (import เดิม) ...
+import ProductForm from './ProductForm';
 
 const ProductTable = () => {
-  const products = useInventoryStore((state) => state.products);
+  const { data: products = [] } = useInventoryData();
   const createMutation = useCreateProduct();
-  const updateMutation = useUpdateProduct(); // <-- เพิ่ม Hook สำหรับอัปเดต
+  const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
 
+  const [globalFilter, setGlobalFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null); // <-- State สำหรับเก็บข้อมูลสินค้าที่กำลังแก้ไข
+  const [editingProduct, setEditingProduct] = useState(null);
 
   const openModal = (product = null) => {
     setEditingProduct(product);
@@ -24,42 +42,90 @@ const ProductTable = () => {
 
   const handleFormSubmit = (productData) => {
     if (editingProduct) {
-      // โหมดแก้ไข
-      updateMutation.mutate(editingProduct.id, productData);
+      updateMutation.mutate({ id: editingProduct.id, updates: productData });
     } else {
-      // โหมดเพิ่มใหม่
       createMutation.mutate(productData);
     }
     closeModal();
   };
 
   const columns = useMemo(() => [
-      // ... (คอลัมน์อื่นๆ เหมือนเดิม) ...
-      {
-        id: 'actions',
-        header: 'Actions',
-        cell: ({ row }) => (
-          <Box>
-            {/* --- ทำให้ปุ่มแก้ไขใช้งานได้ --- */}
-            <IconButton size="small" onClick={() => openModal(row.original)}>
-              <Edit />
-            </IconButton>
-            <IconButton /* ... ปุ่มลบเหมือนเดิม ... */ >
-              <Delete />
-            </IconButton>
-          </Box>
-        ),
-      },
-    ],
-    []
-  );
+    { accessorKey: 'name', header: 'Product Name' },
+    { accessorKey: 'category', header: 'Category', cell: info => <Chip label={info.getValue()} size="small" color="primary" variant="outlined" /> },
+    { accessorKey: 'stock', header: 'Stock', cell: info => {
+        const stock = info.getValue();
+        const minStock = info.row.original.minStock || 10;
+        const color = stock == 0 ? 'error' : stock <= minStock ? 'warning' : 'success';
+        return <Chip label={stock} size="small" color={color} />;
+    }},
+    { accessorKey: 'price', header: 'Price', cell: info => `$${Number(info.getValue() || 0).toFixed(2)}` },
+    { id: 'value', header: 'Total Value', cell: ({ row }) => `$${((row.original.stock || 0) * (row.original.price || 0)).toFixed(2)}` },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <Box>
+          <IconButton size="small" onClick={() => openModal(row.original)}><Edit /></IconButton>
+          <IconButton
+            size="small"
+            onClick={() => {
+              if (window.confirm(`Are you sure you want to delete ${row.original.name}?`)) {
+                deleteMutation.mutate(row.original.id);
+              }
+            }}
+          >
+            <Delete />
+          </IconButton>
+        </Box>
+      ),
+    },
+  ], [deleteMutation, updateMutation]);
 
-  // ... (โค้ด useReactTable และ return JSX เดิม) ...
-  // แต่ต้องแก้ Modal ให้ส่งข้อมูล `editingProduct` ไปด้วย
+  const table = useReactTable({ data: products, columns, state: { globalFilter }, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getPaginationRowModel: getPaginationRowModel(), getSortedRowModel: getSortedRowModel() });
 
   return (
-    <Box /* ... */ >
-      {/* ... */}
+    <Box sx={{ p: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>Product List</Typography>
+        <Button variant="contained" onClick={() => openModal()}>Add New Product</Button>
+      </Box>
+
+      <Box sx={{ mb: 2 }}><TextField value={globalFilter ?? ''} onChange={e => setGlobalFilter(e.target.value)} variant="outlined" label="Search all columns" size="small" fullWidth /></Box>
+
+      <TableContainer component={Paper} elevation={3}>
+        <Table>
+          <TableHead>
+            {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <TableCell key={header.id} onClick={header.column.getToggleSortingHandler()} sx={{ fontWeight: 'bold' }}>
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {{ asc: ' 🔼', desc: ' 🔽' }[header.column.getIsSorted() ?? null]}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableHead>
+          <TableBody>
+            {table.getRowModel().rows.map(row => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map(cell => (
+                  <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="body2">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</Typography>
+        <Box>
+          <Button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
+          <Button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
+        </Box>
+      </Box>
+
       <Modal open={isModalOpen} onClose={closeModal}>
         <ProductForm
           productData={editingProduct}
