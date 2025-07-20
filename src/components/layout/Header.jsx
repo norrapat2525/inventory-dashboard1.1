@@ -1,7 +1,6 @@
-// src/components/layout/Header.jsx
 import React from 'react';
-import { AppBar, Toolbar, Typography, Box, IconButton, Badge } from '@mui/material';
-import { Notifications } from '@mui/icons-material';
+import { AppBar, Toolbar, Typography, Box } from '@mui/material';
+import LowStockAlert from '../dashboard/LowStockAlert'; // 1. Import คอมโพเนนต์ใหม่
 
 const Header = () => {
   return (
@@ -11,11 +10,8 @@ const Header = () => {
           Inventory Dashboard
         </Typography>
         <Box>
-          <IconButton color="inherit">
-            <Badge badgeContent={4} color="error">
-              <Notifications />
-            </Badge>
-          </IconButton>
+          {/* 2. นำคอมโพเนนต์แจ้งเตือนมาใช้งาน */}
+          <LowStockAlert />
         </Box>
       </Toolbar>
     </AppBar>
