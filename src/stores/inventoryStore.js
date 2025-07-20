@@ -58,13 +58,6 @@ const useInventoryStore = create((set, get) => ({
 
   notifications: [],
 
-  // เพิ่ม filters state
-  filters: {
-    search: '',
-    category: '',
-    status: '',
-  },
-
   // Actions
   addProduct: (product) => {
     set((state) => ({
@@ -110,13 +103,6 @@ const useInventoryStore = create((set, get) => ({
 
   clearAllNotifications: () => {
     set({ notifications: [] });
-  },
-
-  // เพิ่มฟังก์ชัน setFilters
-  setFilters: (newFilters) => {
-    set((state) => ({
-      filters: { ...state.filters, ...newFilters }
-    }));
   },
 
   // Helper functions

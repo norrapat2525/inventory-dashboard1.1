@@ -257,6 +257,7 @@ const ProductTable = () => {
             fullWidth
             label="Price"
             type="number"
+            step="0.01"
             value={formData.price}
             onChange={(e) => setFormData({ ...formData, price: e.target.value })}
             margin="normal"
