@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react'; // 1. เพิ่ม useState และ useEffect
 import { 
   Grid, 
   Card, 
@@ -14,7 +14,7 @@ import {
 } from '@mui/icons-material';
 import useInventoryStore from '../stores/inventoryStore';
 
-// คอมโพเนนต์ย่อยต่างๆ ไม่มีการเปลี่ยนแปลง (StatCard, RecentActivity, LowStockAlert)
+// คอมโพเนนต์ย่อยต่างๆ ไม่มีการเปลี่ยนแปลง
 const StatCard = ({ title, value, icon, color }) => (
   <Card elevation={3} sx={{ height: '100%' }}>
     <CardContent>
@@ -115,11 +115,18 @@ const LowStockAlert = ({ lowStockProducts, outOfStockProducts }) => {
 };
 
 
-// คอมโพเนนต์หลักของหน้า Dashboard
+// คอมโพเนนต์หลักของหน้า Dashboard (ส่วนที่แก้ไข)
 const DashboardOverview = () => {
   const products = useInventoryStore(state => state.products);
   const transactions = useInventoryStore(state => state.transactions);
+  
+  // 2. สร้าง state เพื่อตรวจสอบว่า component พร้อมแสดงผลบน client แล้วหรือยัง
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
+  // --- ส่วน useMemo ไม่มีการเปลี่ยนแปลง ---
   const lowStockItems = useMemo(() => 
     products.filter(p => p.quantity > 0 && p.quantity <= p.lowStockThreshold),
     [products]
@@ -145,6 +152,12 @@ const DashboardOverview = () => {
     };
   }, [products, lowStockItems, outOfStockItems]);
 
+  // 3. ถ้ายังไม่พร้อม (ยังอ่าน localStorage ไม่เสร็จ) ให้แสดงหน้าว่างๆ ไปก่อน
+  if (!hasMounted) {
+    return null; // หรือจะแสดง <p>Loading...</p> ก็ได้
+  }
+
+  // 4. เมื่อพร้อมแล้ว จึงแสดงผลข้อมูลทั้งหมด
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
