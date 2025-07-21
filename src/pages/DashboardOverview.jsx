@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react'; // 1. เพิ่ม import useMemo
 import { 
   Grid, 
   Card, 
   CardContent, 
   Typography, 
-  Box
+  Box 
 } from '@mui/material';
 import { 
   TrendingUp, 
@@ -14,7 +14,7 @@ import {
 } from '@mui/icons-material';
 import useInventoryStore from '../stores/inventoryStore';
 
-// คอมโพเนนต์ย่อย: การ์ดสถิติ
+// คอมโพเนนต์ย่อยต่างๆ ไม่มีการเปลี่ยนแปลง (StatCard, RecentActivity, LowStockAlert)
 const StatCard = ({ title, value, icon, color }) => (
   <Card elevation={3} sx={{ height: '100%' }}>
     <CardContent>
@@ -35,7 +35,6 @@ const StatCard = ({ title, value, icon, color }) => (
   </Card>
 );
 
-// คอมโพเนนต์ย่อย: กิจกรรมล่าสุด
 const RecentActivity = ({ transactions }) => (
   <Card elevation={3}>
     <CardContent>
@@ -71,7 +70,6 @@ const RecentActivity = ({ transactions }) => (
   </Card>
 );
 
-// คอมโพเนนต์ย่อย: การแจ้งเตือนสต็อก
 const LowStockAlert = ({ lowStockProducts, outOfStockProducts }) => {
   return (
     <Card elevation={3}>
@@ -116,18 +114,33 @@ const LowStockAlert = ({ lowStockProducts, outOfStockProducts }) => {
   );
 };
 
-// คอมโพเนนต์หลักของหน้า Dashboard
-const DashboardOverview = () => {
-  const { transactions, getInventoryStats, getLowStockProducts, getOutOfStockProducts } = useInventoryStore(state => ({
-    transactions: state.transactions,
-    getInventoryStats: state.getInventoryStats,
-    getLowStockProducts: state.getLowStockProducts,
-    getOutOfStockProducts: state.getOutOfStockProducts,
-  }));
 
-  const stats = getInventoryStats();
-  const lowStockItems = getLowStockProducts();
-  const outOfStockItems = getOutOfStockProducts();
+// คอมโพเนนต์หลักของหน้า Dashboard (ส่วนที่แก้ไข)
+const DashboardOverview = () => {
+  // 2. ดึงแค่ข้อมูลดิบ (products, transactions) มาจาก store
+  const products = useInventoryStore(state => state.products);
+  const transactions = useInventoryStore(state => state.transactions);
+
+  // 3. ใช้ useMemo เพื่อคำนวณค่าสถิติต่างๆ
+  const lowStockItems = useMemo(() => 
+    products.filter(p => p.quantity > 0 && p.quantity <= p.lowStockThreshold),
+    [products] // คำนวณใหม่เมื่อ products เปลี่ยน
+  );
+
+  const outOfStockItems = useMemo(() => 
+    products.filter(p => p.quantity === 0),
+    [products] // คำนวณใหม่เมื่อ products เปลี่ยน
+  );
+
+  const stats = useMemo(() => {
+    const totalValue = products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+    return {
+      totalProducts: products.length,
+      totalValue: totalValue,
+      lowStockCount: lowStockItems.length,
+      outOfStockCount: outOfStockItems.length,
+    };
+  }, [products, lowStockItems, outOfStockItems]); // คำนวณใหม่เมื่อค่าเหล่านี้เปลี่ยน
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -135,7 +148,7 @@ const DashboardOverview = () => {
         Dashboard Overview
       </Typography>
       
-      {/* การ์ดสถิติ */}
+      {/* การ์ดสถิติ (ส่วนนี้ไม่ต้องแก้) */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard 
@@ -171,7 +184,7 @@ const DashboardOverview = () => {
         </Grid>
       </Grid>
 
-      {/* การ์ดเนื้อหา */}
+      {/* การ์ดเนื้อหา (ส่วนนี้ไม่ต้องแก้) */}
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <RecentActivity transactions={transactions} />
