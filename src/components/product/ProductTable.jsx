@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useReactTable, getCoreRowModel, flexRender, getFilteredRowModel } from '@tanstack/react-table';
 import {
   Table,
@@ -18,47 +18,45 @@ import {
 import { Edit, Delete } from '@mui/icons-material';
 import useInventoryStore from '../../stores/inventoryStore';
 import ProductForm from './ProductForm';
-import ConfirmationDialog from '../common/ConfirmationDialog'; // 1. Import หน้าต่างยืนยัน
+import ConfirmationDialog from '../common/ConfirmationDialog';
 
 const ProductTable = () => {
-  const { products, deleteProduct } = useInventoryStore((state) => ({
-    products: state.products,
-    deleteProduct: state.deleteProduct,
-  }));
+  // FIX 1: Select state slices individually to prevent unnecessary re-renders.
+  const products = useInventoryStore((state) => state.products);
+  const deleteProduct = useInventoryStore((state) => state.deleteProduct);
   
   const [globalFilter, setGlobalFilter] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-
-  // 2. State สำหรับเก็บข้อมูลสินค้าที่จะแก้ไข และ ID ที่จะลบ
   const [productToEdit, setProductToEdit] = useState(null);
   const [productToDelete, setProductToDelete] = useState(null);
 
-  // 3. ฟังก์ชันสำหรับจัดการการเปิด/ปิด Dialog
-  const handleOpenForm = (product = null) => {
+  // FIX 2: Wrap event handlers in useCallback for stable function references.
+  const handleOpenForm = useCallback((product = null) => {
     setProductToEdit(product);
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleCloseForm = () => {
+  const handleCloseForm = useCallback(() => {
     setIsFormOpen(false);
     setProductToEdit(null);
-  };
+  }, []);
 
-  const handleOpenDeleteDialog = (product) => {
+  const handleOpenDeleteDialog = useCallback((product) => {
     setProductToDelete(product);
-  };
+  }, []);
 
-  const handleCloseDeleteDialog = () => {
+  const handleCloseDeleteDialog = useCallback(() => {
     setProductToDelete(null);
-  };
+  }, []);
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = useCallback(() => {
     if (productToDelete) {
       deleteProduct(productToDelete.id);
       handleCloseDeleteDialog();
     }
-  };
+  }, [productToDelete, deleteProduct, handleCloseDeleteDialog]);
 
+  // FIX 3: Update the dependency array for columns to use the stable handlers.
   const columns = useMemo(() => [
     {
       accessorKey: 'name',
@@ -101,7 +99,6 @@ const ProductTable = () => {
     {
       id: 'actions',
       header: 'Actions',
-      // 4. ทำให้ปุ่ม Edit และ Delete ใช้งานได้
       cell: ({ row }) => (
         <Box>
           <IconButton size="small" color="primary" onClick={() => handleOpenForm(row.original)}>
@@ -113,7 +110,7 @@ const ProductTable = () => {
         </Box>
       ),
     },
-  ], [deleteProduct]); // เพิ่ม deleteProduct ใน dependency array
+  ], [handleOpenForm, handleOpenDeleteDialog]);
 
   const table = useReactTable({
     data: products,
@@ -173,14 +170,12 @@ const ProductTable = () => {
         </Table>
       </TableContainer>
 
-      {/* 5. เรียกใช้ฟอร์มและส่ง props สำหรับการแก้ไข */}
       <ProductForm 
         open={isFormOpen} 
         handleClose={handleCloseForm}
         productToEdit={productToEdit}
       />
 
-      {/* 6. เรียกใช้หน้าต่างยืนยันการลบ */}
       <ConfirmationDialog
         open={!!productToDelete}
         onClose={handleCloseDeleteDialog}
