@@ -21,15 +21,22 @@ import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const CustomersPage = () => {
   // --- 1. State Management ---
-  // State สำหรับตรวจสอบการ Hydration (รอให้ Client พร้อม)
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  // State จาก Zustand Store
-  const customers = useInventoryStore((state) => state.customers);
+  // ดึง State จาก Store
+  const customersFromStore = useInventoryStore((state) => state.customers);
   const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
+  
+  // FIX: สร้าง "สถานะที่ปลอดภัย" สำหรับเก็บข้อมูลลูกค้า
+  // โดยเริ่มต้นด้วย Array ว่างเสมอ
+  const [hydratedCustomers, setHydratedCustomers] = useState([]);
+
+  // useEffect จะทำงานเมื่อข้อมูลจาก Store พร้อมใช้งาน
+  useEffect(() => {
+    // เมื่อ customersFromStore มีข้อมูล (ไม่ใช่ undefined)
+    // ให้อัปเดต "สถานะที่ปลอดภัย" ของเรา
+    if (customersFromStore) {
+      setHydratedCustomers(customersFromStore);
+    }
+  }, [customersFromStore]);
   
   // State สำหรับควบคุม UI
   const [globalFilter, setGlobalFilter] = useState('');
@@ -37,7 +44,7 @@ const CustomersPage = () => {
   const [customerToEdit, setCustomerToEdit] = useState(null);
   const [customerToDelete, setCustomerToDelete] = useState(null);
 
-  // --- 2. Handlers (ฟังก์ชันจัดการเหตุการณ์) ---
+  // --- 2. Handlers (ฟังก์ชันจัดการเหตุการณ์) - ไม่มีการเปลี่ยนแปลง ---
   const handleOpenForm = useCallback((customer = null) => {
     setCustomerToEdit(customer);
     setIsFormOpen(true);
@@ -63,7 +70,7 @@ const CustomersPage = () => {
     }
   }, [customerToDelete, deleteCustomer, handleCloseDeleteDialog]);
 
-  // --- 3. การเตรียมข้อมูลสำหรับตาราง (ส่วนแก้ไขที่สำคัญที่สุด) ---
+  // --- 3. การเตรียมข้อมูลสำหรับตาราง ---
   const columns = useMemo(() => [
     { accessorKey: 'name', header: 'Customer Name' },
     { accessorKey: 'phone', header: 'Phone' },
@@ -84,12 +91,8 @@ const CustomersPage = () => {
     },
   ], [handleOpenForm, handleOpenDeleteDialog]);
 
-  // FIX: สร้างตัวแปรข้อมูลที่ปลอดภัย รับประกันว่าเป็น Array เสมอ
-  // ก่อนที่ Client จะ Mount จะเป็น Array ว่าง, หลังจาก Mount แล้ว จะใช้ข้อมูลจาก Store
-  const tableData = useMemo(() => (hasMounted ? customers || [] : []), [hasMounted, customers]);
-
   const table = useReactTable({
-    data: tableData, // ใช้ข้อมูลที่ปลอดภัยแล้ว
+    data: hydratedCustomers, // FIX: ใช้ข้อมูลจาก "สถานะที่ปลอดภัย" เสมอ
     columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
@@ -98,12 +101,6 @@ const CustomersPage = () => {
   });
 
   // --- 4. การแสดงผล ---
-  // ถ้ายังไม่ Mount (ยังไม่พร้อม) ให้ไม่แสดงอะไรเลย เพื่อป้องกัน Error
-  if (!hasMounted) {
-    return null;
-  }
-
-  // เมื่อพร้อมแล้ว จึงแสดงผลหน้าทั้งหมด
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
