@@ -1,10 +1,11 @@
-import React, { useMemo, useState, useEffect } from 'react'; // 1. เพิ่ม useState และ useEffect
+import React, { useMemo, useState, useEffect } from 'react';
 import { 
   Grid, 
   Card, 
   CardContent, 
   Typography, 
-  Box 
+  Box,
+  CircularProgress
 } from '@mui/material';
 import { 
   TrendingUp, 
@@ -14,7 +15,6 @@ import {
 } from '@mui/icons-material';
 import useInventoryStore from '../stores/inventoryStore';
 
-// คอมโพเนนต์ย่อยต่างๆ ไม่มีการเปลี่ยนแปลง
 const StatCard = ({ title, value, icon, color }) => (
   <Card elevation={3} sx={{ height: '100%' }}>
     <CardContent>
@@ -35,32 +35,32 @@ const StatCard = ({ title, value, icon, color }) => (
   </Card>
 );
 
-const RecentActivity = ({ transactions }) => (
+const RecentActivity = ({ sales }) => (
   <Card elevation={3}>
     <CardContent>
       <Typography variant="h6" gutterBottom>
-        Recent Activity
+        Recent Sales
       </Typography>
-      {transactions.length === 0 ? (
+      {sales.length === 0 ? (
         <Typography color="textSecondary">
-          No recent transactions
+          No recent sales
         </Typography>
       ) : (
         <Box>
-          {transactions.slice(0, 5).map((transaction, index) => (
+          {sales.slice(0, 5).map((sale, index) => (
             <Box 
-              key={transaction.id}
+              key={sale.id}
               sx={{ 
                 py: 1, 
                 borderBottom: index < 4 ? `1px solid #eee` : 'none' 
               }}
             >
               <Typography variant="body2">
-                <strong>{transaction.type === 'in' ? 'Stock In' : 'Stock Out'}</strong>
-                {' - Qty: ' + transaction.quantity}
+                <strong>Sale {sale.id}</strong>
+                {' - Customer: ' + (sale.customerName || 'Walk-in')}
               </Typography>
               <Typography variant="caption" color="textSecondary">
-                {transaction.date} - {transaction.note}
+                {sale.date} - Total: ${sale.totalAmount?.toLocaleString() || 0}
               </Typography>
             </Box>
           ))}
@@ -114,19 +114,55 @@ const LowStockAlert = ({ lowStockProducts, outOfStockProducts }) => {
   );
 };
 
-
-// คอมโพเนนต์หลักของหน้า Dashboard (ส่วนที่แก้ไข)
 const DashboardOverview = () => {
-  const products = useInventoryStore(state => state.products);
-  const transactions = useInventoryStore(state => state.transactions);
+  // ใช้ Safe functions แทนการดึงข้อมูลโดยตรง
+  const getSafeProducts = useInventoryStore((state) => state.getSafeProducts);
+  const sales = useInventoryStore((state) => state.sales || []);
   
-  // 2. สร้าง state เพื่อตรวจสอบว่า component พร้อมแสดงผลบน client แล้วหรือยัง
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
+  // ตรวจสอบสถานะความพร้อม
+  const isClient = useInventoryStore((state) => state._isClient);
+  const isHydrated = useInventoryStore((state) => state._isHydrated);
+  
+  // State ในคอมโพเนนต์
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // --- ส่วน useMemo ไม่มีการเปลี่ยนแปลง ---
+  // รอให้ Store พร้อมแล้วค่อยดึงข้อมูล
+  useEffect(() => {
+    console.log('🔧 [Dashboard] Checking readiness...', { isClient, isHydrated });
+    
+    if (isClient && isHydrated) {
+      console.log('🔧 [Dashboard] Store is ready, loading products...');
+      try {
+        const safeProducts = getSafeProducts();
+        console.log('🔧 [Dashboard] Got products:', safeProducts.length);
+        setProducts(safeProducts);
+      } catch (error) {
+        console.error('🔧 [Dashboard] Error loading products:', error);
+        setProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }, [isClient, isHydrated, getSafeProducts]);
+
+  // Subscribe การเปลี่ยนแปลงของข้อมูล products
+  useEffect(() => {
+    if (!isClient || !isHydrated) return;
+
+    const unsubscribe = useInventoryStore.subscribe(
+      (state) => state.products,
+      (newProducts) => {
+        console.log('🔧 [Dashboard] Products updated:', newProducts?.length || 0);
+        if (Array.isArray(newProducts)) {
+          setProducts(newProducts);
+        }
+      }
+    );
+
+    return unsubscribe;
+  }, [isClient, isHydrated]);
+
   const lowStockItems = useMemo(() => 
     products.filter(p => p.quantity > 0 && p.quantity <= p.lowStockThreshold),
     [products]
@@ -152,12 +188,21 @@ const DashboardOverview = () => {
     };
   }, [products, lowStockItems, outOfStockItems]);
 
-  // 3. ถ้ายังไม่พร้อม (ยังอ่าน localStorage ไม่เสร็จ) ให้แสดงหน้าว่างๆ ไปก่อน
-  if (!hasMounted) {
-    return null; // หรือจะแสดง <p>Loading...</p> ก็ได้
+  if (isLoading || !isClient || !isHydrated) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '60vh',
+        flexDirection: 'column' 
+      }}>
+        <CircularProgress size={60} />
+        <Typography sx={{ mt: 2 }}>Loading dashboard...</Typography>
+      </Box>
+    );
   }
 
-  // 4. เมื่อพร้อมแล้ว จึงแสดงผลข้อมูลทั้งหมด
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
@@ -201,7 +246,7 @@ const DashboardOverview = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
-          <RecentActivity transactions={transactions} />
+          <RecentActivity sales={sales} />
         </Grid>
         <Grid item xs={12} md={6}>
           <LowStockAlert lowStockProducts={lowStockItems} outOfStockProducts={outOfStockItems} />
