@@ -1,5 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useReactTable, getCoreRowModel, flexRender, getFilteredRowModel } from '@tanstack/react-table';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -13,6 +12,7 @@ import {
   Button,
   IconButton,
   TextField,
+  CircularProgress,
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
 import useInventoryStore from '../stores/inventoryStore'; 
@@ -20,48 +20,27 @@ import CustomerForm from '../components/customers/CustomerForm';
 import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const CustomersPage = () => {
-  // --- 1. State Management (วิธีใหม่ที่ปลอดภัยที่สุด) ---
-  const [hasMounted, setHasMounted] = useState(false);
-  const [safeCustomers, setSafeCustomers] = useState([]);
+  // ดึงข้อมูลจาก Store
+  const hasHydrated = useInventoryStore((state) => state._hasHydrated);
+  const customers = useInventoryStore((state) => state.customers || []);
   const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
-
-  useEffect(() => {
-    setHasMounted(true);
-
-    // FIX: สร้างฟังก์ชันสำหรับตรวจสอบและตั้งค่าข้อมูลอย่างปลอดภัย
-    const safelySetCustomers = () => {
-      const customersFromState = useInventoryStore.getState().customers;
-
-      // เกราะป้องกันชั้นสุดท้าย: ตรวจสอบว่าข้อมูลเป็น Array หรือไม่
-      if (Array.isArray(customersFromState)) {
-        setSafeCustomers(customersFromState);
-      } else {
-        // ถ้าข้อมูลเสียหาย ให้ใช้ Array ว่างแทน และแจ้งเตือนใน Console
-        console.warn(
-          "ข้อมูลลูกค้าจาก Storage ไม่ใช่ Array, กำลังใช้ค่าเริ่มต้นเป็น Array ว่าง.",
-          customersFromState
-        );
-        setSafeCustomers([]);
-      }
-    };
-
-    // ตั้งค่าข้อมูลครั้งแรกหลังจาก Client พร้อมทำงาน
-    safelySetCustomers();
-
-    // สมัครรับการเปลี่ยนแปลงจาก Store โดยใช้ฟังก์ชันที่ปลอดภัยของเรา
-    const unsubscribe = useInventoryStore.subscribe(safelySetCustomers);
-
-    // Cleanup subscription เมื่อคอมโพเนントถูกทำลาย
-    return () => unsubscribe();
-  }, []); // useEffect นี้จะทำงานแค่ครั้งเดียวหลังจาก Mount
-
-  // State สำหรับควบคุม UI
-  const [globalFilter, setGlobalFilter] = useState('');
+  
+  // State สำหรับ UI
+  const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState(null);
   const [customerToDelete, setCustomerToDelete] = useState(null);
 
-  // --- 2. Handlers (ฟังก์ชันจัดการเหตุการณ์) ---
+  // Debug logs
+  useEffect(() => {
+    console.log('🔧 [CustomersPage] State:', {
+      hasHydrated,
+      customersCount: customers.length,
+      customers: customers
+    });
+  }, [hasHydrated, customers]);
+
+  // Handlers
   const handleOpenForm = useCallback((customer = null) => {
     setCustomerToEdit(customer);
     setIsFormOpen(true);
@@ -87,94 +66,110 @@ const CustomersPage = () => {
     }
   }, [customerToDelete, deleteCustomer, handleCloseDeleteDialog]);
 
-  // --- 3. การเตรียมข้อมูลสำหรับตาราง ---
-  const columns = useMemo(() => [
-    { accessorKey: 'name', header: 'Customer Name' },
-    { accessorKey: 'phone', header: 'Phone' },
-    { accessorKey: 'email', header: 'Email' },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <Box>
-          <IconButton size="small" color="primary" onClick={() => handleOpenForm(row.original)}>
-            <Edit fontSize="inherit" />
-          </IconButton>
-          <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(row.original)}>
-            <Delete fontSize="inherit" />
-          </IconButton>
-        </Box>
-      ),
-    },
-  ], [handleOpenForm, handleOpenDeleteDialog]);
+  // Filter customers based on search term
+  const filteredCustomers = customers.filter(customer => 
+    customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const table = useReactTable({
-    data: safeCustomers, // ใช้ข้อมูลจาก "State ที่ปลอดภัย" เสมอ
-    columns,
-    state: { globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-  });
-
-  // --- 4. การแสดงผล ---
-  if (!hasMounted) {
-    return null; // รอให้ Client พร้อมก่อน
+  // Loading state
+  if (!hasHydrated) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Loading customers...</Typography>
+      </Box>
+    );
   }
 
   return (
     <Box>
+      {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4" gutterBottom>Customer List</Typography>
-        <Button variant="contained" color="primary" onClick={() => handleOpenForm()}>
+        <Typography variant="h4" gutterBottom>
+          Customer List ({customers.length} customers)
+        </Typography>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={() => handleOpenForm()}
+        >
           Add New Customer
         </Button>
       </Box>
 
+      {/* Search Bar */}
       <Box mb={2}>
         <TextField
-          value={globalFilter ?? ''}
-          onChange={e => setGlobalFilter(e.target.value)}
-          placeholder="Search all columns..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search customers by name, phone, or email..."
           variant="outlined"
           size="small"
           fullWidth
         />
       </Box>
 
+      {/* Table */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <TableCell key={header.id} sx={{ fontWeight: 'bold' }}>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold' }}>Customer Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Phone</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+            </TableRow>
           </TableHead>
           <TableBody>
-            {table.getRowModel().rows.map(row => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map(cell => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
+            {filteredCustomers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} align="center">
+                  <Typography variant="body1" color="textSecondary">
+                    {searchTerm ? 'No customers found matching your search.' : 'No customers yet. Add your first customer!'}
+                  </Typography>
+                </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredCustomers.map((customer) => (
+                <TableRow key={customer.id} hover>
+                  <TableCell>{customer.name}</TableCell>
+                  <TableCell>{customer.phone}</TableCell>
+                  <TableCell>{customer.email}</TableCell>
+                  <TableCell>
+                    <IconButton 
+                      size="small" 
+                      color="primary" 
+                      onClick={() => handleOpenForm(customer)}
+                      title="Edit Customer"
+                    >
+                      <Edit fontSize="inherit" />
+                    </IconButton>
+                    <IconButton 
+                      size="small" 
+                      color="error" 
+                      onClick={() => handleOpenDeleteDialog(customer)}
+                      title="Delete Customer"
+                    >
+                      <Delete fontSize="inherit" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
+      {/* Customer Form Modal */}
       <CustomerForm 
         open={isFormOpen} 
         handleClose={handleCloseForm}
         customerToEdit={customerToEdit}
       />
 
+      {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         open={!!customerToDelete}
         onClose={handleCloseDeleteDialog}
