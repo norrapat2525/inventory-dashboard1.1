@@ -1,48 +1,147 @@
 import React, { useState, useEffect } from 'react';
-import { Box, TextField, Button, Typography, Grid } from '@mui/material';
+import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Button,
+  Grid,
+} from '@mui/material';
+import useInventoryStore from '../../stores/inventoryStore';
 
-const ProductForm = ({ onSubmit, onClose, productData }) => {
-  // ถ้ามี productData (ข้อมูลสำหรับแก้ไข) ให้ใช้ค่านั้น, ถ้าไม่มีให้เป็นค่าว่าง (สำหรับเพิ่มใหม่)
-  const [product, setProduct] = useState(
-    productData || { name: '', category: '', stock: '', minStock: '', price: '' }
-  );
+const ProductForm = ({ open, handleClose, productToEdit }) => {
+  const addProduct = useInventoryStore((state) => state.addProduct);
+  const updateProduct = useInventoryStore((state) => state.updateProduct);
 
-  const isEditing = Boolean(productData); // ตรวจสอบว่าเป็นโหมดแก้ไขหรือไม่
+  const [formData, setFormData] = useState({
+    name: '',
+    category: '',
+    quantity: '',
+    price: '',
+    lowStockThreshold: '',
+  });
+
+  useEffect(() => {
+    // ถ้ามี productToEdit (โหมดแก้ไข) ให้ตั้งค่าข้อมูลในฟอร์ม
+    if (productToEdit) {
+      setFormData({
+        name: productToEdit.name,
+        category: productToEdit.category,
+        quantity: productToEdit.quantity.toString(),
+        price: productToEdit.price.toString(),
+        lowStockThreshold: productToEdit.lowStockThreshold.toString(),
+      });
+    } else {
+      // ถ้าไม่มี (โหมดเพิ่มใหม่) ให้ล้างฟอร์ม
+      setFormData({
+        name: '',
+        category: '',
+        quantity: '',
+        price: '',
+        lowStockThreshold: '5', // ค่าเริ่มต้น
+      });
+    }
+  }, [productToEdit, open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setProduct(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const numericProduct = {
-        ...product,
-        stock: Number(product.stock),
-        minStock: Number(product.minStock),
-        price: Number(product.price)
+    const productData = {
+        ...formData,
+        quantity: Number(formData.quantity) || 0,
+        price: Number(formData.price) || 0,
+        lowStockThreshold: Number(formData.lowStockThreshold) || 0,
     };
-    onSubmit(numericProduct);
+
+    if (productToEdit) {
+      updateProduct(productToEdit.id, productData);
+    } else {
+      addProduct(productData);
+    }
+    handleClose();
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', p: 4, bgcolor: 'background.paper', borderRadius: 2, boxShadow: 24, width: 400 }}>
-      <Typography variant="h6" gutterBottom>
-        {isEditing ? 'Edit Product' : 'Add New Product'}
-      </Typography>
-      <Grid container spacing={2}>
-        {/* ... (ส่วน TextField เหมือนเดิม) ... */}
-        <Grid item xs={12}><TextField name="name" label="Product Name" value={product.name} onChange={handleChange} fullWidth required /></Grid>
-        <Grid item xs={12}><TextField name="category" label="Category" value={product.category} onChange={handleChange} fullWidth required /></Grid>
-        <Grid item xs={6}><TextField name="stock" label="Stock" type="number" value={product.stock} onChange={handleChange} fullWidth required /></Grid>
-        <Grid item xs={6}><TextField name="minStock" label="Min Stock" type="number" value={product.minStock} onChange={handleChange} fullWidth required /></Grid>
-        <Grid item xs={12}><TextField name="price" label="Price" type="number" value={product.price} onChange={handleChange} fullWidth required /></Grid>
-      </Grid>
-      <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button onClick={onClose} sx={{ mr: 1 }}>Cancel</Button>
-        <Button type="submit" variant="contained">Submit</Button>
-      </Box>
-    </Box>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{productToEdit ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                name="name"
+                label="Product Name"
+                value={formData.name}
+                onChange={handleChange}
+                fullWidth
+                required
+                margin="dense"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                name="category"
+                label="Category"
+                value={formData.category}
+                onChange={handleChange}
+                fullWidth
+                required
+                margin="dense"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                name="quantity"
+                label="Quantity"
+                type="number"
+                value={formData.quantity}
+                onChange={handleChange}
+                fullWidth
+                required
+                margin="dense"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                name="price"
+                label="Price"
+                type="number"
+                value={formData.price}
+                onChange={handleChange}
+                fullWidth
+                required
+                margin="dense"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                name="lowStockThreshold"
+                label="Low Stock Threshold"
+                type="number"
+                value={formData.lowStockThreshold}
+                onChange={handleChange}
+                fullWidth
+                required
+                margin="dense"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} color="secondary">
+            Cancel
+          </Button>
+          <Button type="submit" variant="contained" color="primary">
+            {productToEdit ? 'Save Changes' : 'Add Product'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 };
 
