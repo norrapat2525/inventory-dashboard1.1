@@ -78,11 +78,10 @@ const CustomersPage = () => {
     },
   ], [handleOpenForm, handleOpenDeleteDialog]);
 
-  // FIX: ใช้ useMemo เพื่อให้แน่ใจว่าข้อมูลที่ส่งให้ตารางเป็น Array เสมอ
   const tableData = useMemo(() => customers || [], [customers]);
 
   const table = useReactTable({
-    data: tableData, // ใช้ tableData ที่ปลอดภัยแล้ว
+    data: tableData,
     columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
@@ -141,10 +140,11 @@ const CustomersPage = () => {
         </Table>
       </TableContainer>
 
+      {/* FIX: แก้ไข typo จาก customerToedit เป็น customerToEdit */}
       <CustomerForm 
         open={isFormOpen} 
         handleClose={handleCloseForm}
-        customerToEdit={customerToedit}
+        customerToEdit={customerToEdit}
       />
 
       <ConfirmationDialog
