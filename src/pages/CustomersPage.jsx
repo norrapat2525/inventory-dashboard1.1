@@ -20,8 +20,7 @@ import CustomerForm from '../components/customers/CustomerForm';
 import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const CustomersPage = () => {
-  // FIX: เพิ่ม || [] เพื่อให้แน่ใจว่า customers เป็น array เสมอ
-  const customers = useInventoryStore((state) => state.customers || []);
+  const customers = useInventoryStore((state) => state.customers);
   const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
   
   const [globalFilter, setGlobalFilter] = useState('');
@@ -79,8 +78,11 @@ const CustomersPage = () => {
     },
   ], [handleOpenForm, handleOpenDeleteDialog]);
 
+  // FIX: ใช้ useMemo เพื่อให้แน่ใจว่าข้อมูลที่ส่งให้ตารางเป็น Array เสมอ
+  const tableData = useMemo(() => customers || [], [customers]);
+
   const table = useReactTable({
-    data: customers,
+    data: tableData, // ใช้ tableData ที่ปลอดภัยแล้ว
     columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
@@ -142,7 +144,7 @@ const CustomersPage = () => {
       <CustomerForm 
         open={isFormOpen} 
         handleClose={handleCloseForm}
-        customerToEdit={customerToEdit}
+        customerToEdit={customerToedit}
       />
 
       <ConfirmationDialog
