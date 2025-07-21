@@ -7,10 +7,10 @@ import {
   Card,
   CardContent,
   Grid,
-  Chip,
   IconButton,
   TextField,
   Divider,
+  CircularProgress,
 } from '@mui/material';
 import { Edit, Delete, Phone, Email, Person } from '@mui/icons-material';
 import useInventoryStore from '../stores/inventoryStore'; 
@@ -18,41 +18,63 @@ import CustomerForm from '../components/customers/CustomerForm';
 import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const CustomersPage = () => {
-  // ใช้ state ใน component แทนการดึงจาก Store โดยตรง
+  // ใช้สถานะใน component เพื่อป้องกัน hydration error
   const [customers, setCustomers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // ดึงข้อมูลหลังจากที่ component mount แล้ว
+  const [isReady, setIsReady] = useState(false);
+
+  // Actions จาก store
+  const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
+  const getSafeCustomers = useInventoryStore((state) => state.getSafeCustomers);
+
+  // ดึงสถานะความพร้อม
+  const isClient = useInventoryStore((state) => state._isClient);
+  const isHydrated = useInventoryStore((state) => state._isHydrated);
+
+  // รอให้ store พร้อมแล้วค่อยดึงข้อมูล
   useEffect(() => {
-    const timer = setTimeout(() => {
+    console.log('🔧 [CustomersPage] Checking readiness...', { isClient, isHydrated });
+    
+    if (isClient && isHydrated) {
+      console.log('🔧 [CustomersPage] Store is ready, loading customers...');
       try {
-        const storeCustomers = useInventoryStore.getState().customers || [];
-        setCustomers(storeCustomers);
+        const safeCustomers = getSafeCustomers();
+        console.log('🔧 [CustomersPage] Got customers:', safeCustomers.length);
+        setCustomers(safeCustomers);
+        setIsReady(true);
       } catch (error) {
-        console.error('Error loading customers:', error);
+        console.error('🔧 [CustomersPage] Error loading customers:', error);
         setCustomers([]);
       } finally {
         setIsLoading(false);
       }
-    }, 100); // รอ 100ms ให้ store พร้อม
+    } else {
+      // หากยังไม่พร้อม ให้รอต่อไป
+      const timer = setTimeout(() => {
+        console.log('🔧 [CustomersPage] Still waiting for store...');
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isClient, isHydrated, getSafeCustomers]);
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Subscribe การเปลี่ยนแปลงจาก Store
+  // Subscribe การเปลี่ยนแปลงของข้อมูล customers
   useEffect(() => {
+    if (!isReady) return;
+
     const unsubscribe = useInventoryStore.subscribe(
       (state) => state.customers,
       (newCustomers) => {
-        setCustomers(newCustomers || []);
+        console.log('🔧 [CustomersPage] Customers updated:', newCustomers?.length || 0);
+        if (Array.isArray(newCustomers)) {
+          setCustomers(newCustomers);
+        }
       }
     );
 
     return unsubscribe;
-  }, []);
+  }, [isReady]);
 
-  const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
-  
   // UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -92,12 +114,21 @@ const CustomersPage = () => {
     customer?.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (isLoading) {
+  if (isLoading || !isReady) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Paper sx={{ p: 3, textAlign: 'center' }}>
-          <Typography variant="h6">Loading customers...</Typography>
-        </Paper>
+      <Box sx={{ 
+        p: 3, 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '60vh',
+        flexDirection: 'column' 
+      }}>
+        <CircularProgress size={60} />
+        <Typography sx={{ mt: 2 }}>Loading customer data...</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          Please wait while we prepare your data safely
+        </Typography>
       </Box>
     );
   }
@@ -124,7 +155,7 @@ const CustomersPage = () => {
         <TextField
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search customers..."
+          placeholder="Search customers by name, phone, or email..."
           variant="outlined"
           size="small"
           fullWidth
