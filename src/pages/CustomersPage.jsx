@@ -20,19 +20,25 @@ import CustomerForm from '../components/customers/CustomerForm';
 import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const CustomersPage = () => {
-  const customers = useInventoryStore((state) => state.customers);
-  const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
-  
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [customerToEdit, setCustomerToEdit] = useState(null);
-  const [customerToDelete, setCustomerToDelete] = useState(null);
-
+  // --- การจัดการ State ---
+  // 1. ตรวจสอบการ Hydration ก่อน
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
+  // 2. ดึง State จาก Store
+  const customers = useInventoryStore((state) => state.customers);
+  const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
+  
+  // 3. State สำหรับ UI
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [customerToEdit, setCustomerToEdit] = useState(null);
+  const [customerToDelete, setCustomerToDelete] = useState(null);
+
+
+  // --- ฟังก์ชัน Handlers ---
   const handleOpenForm = useCallback((customer = null) => {
     setCustomerToEdit(customer);
     setIsFormOpen(true);
@@ -58,6 +64,8 @@ const CustomersPage = () => {
     }
   }, [customerToDelete, deleteCustomer, handleCloseDeleteDialog]);
 
+
+  // --- การเตรียมข้อมูลสำหรับตาราง ---
   const columns = useMemo(() => [
     { accessorKey: 'name', header: 'Customer Name' },
     { accessorKey: 'phone', header: 'Phone' },
@@ -78,10 +86,11 @@ const CustomersPage = () => {
     },
   ], [handleOpenForm, handleOpenDeleteDialog]);
 
-  const tableData = useMemo(() => customers || [], [customers]);
+  // FIX: สร้างตัวแปรข้อมูลที่ปลอดภัย รับประกันว่าเป็น Array เสมอ
+  const tableData = useMemo(() => (hasMounted ? customers || [] : []), [hasMounted, customers]);
 
   const table = useReactTable({
-    data: tableData,
+    data: tableData, // ส่งข้อมูลที่ปลอดภัยแล้วเข้าตาราง
     columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
@@ -89,10 +98,13 @@ const CustomersPage = () => {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
+  // --- การแสดงผล ---
+  // ถ้ายังไม่ Mount (ยังอยู่บน Server หรือ Client ยังไม่พร้อม) ให้ไม่แสดงอะไรเลย
   if (!hasMounted) {
     return null;
   }
 
+  // เมื่อพร้อมแล้ว จึงแสดงผลหน้าทั้งหมด
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
@@ -140,7 +152,6 @@ const CustomersPage = () => {
         </Table>
       </TableContainer>
 
-      {/* FIX: แก้ไข typo จาก customerToedit เป็น customerToEdit */}
       <CustomerForm 
         open={isFormOpen} 
         handleClose={handleCloseForm}
