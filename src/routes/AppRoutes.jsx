@@ -2,9 +2,10 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import DashboardOverview from '../pages/DashboardOverview';
 import ProductTable from '../components/product/ProductTable';
-import TransactionsPage from '../pages/TransactionsPage';
+import TransactionsPage from '../pages/TransactionsPage'; // ✅ แก้ไขชื่อไฟล์ให้ถูกต้อง
+import CustomersPage from '../pages/CustomersPage';
+import SalesPage from '../pages/SalesPage';
 import ReportsPage from '../pages/ReportsPage';
-import CustomersPage from '../pages/CustomersPage'; // 1. Import หน้าลูกค้าใหม่
 
 const AppRoutes = () => {
   return (
@@ -12,10 +13,10 @@ const AppRoutes = () => {
       <Route path="/" element={<Navigate to="/overview" />} />
       <Route path="/overview" element={<DashboardOverview />} />
       <Route path="/products" element={<ProductTable />} />
+      <Route path="/customers" element={<CustomersPage />} />
+      <Route path="/sales" element={<SalesPage />} />
       <Route path="/transactions" element={<TransactionsPage />} />
       <Route path="/reports" element={<ReportsPage />} />
-      {/* 2. เพิ่ม Route สำหรับหน้าลูกค้า */}
-      <Route path="/customers" element={<CustomersPage />} />
     </Routes>
   );
 };

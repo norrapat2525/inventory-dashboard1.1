@@ -1,13 +1,13 @@
 import React from 'react';
 import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
-import { Dashboard, Inventory, Receipt, Assessment, Group } from '@mui/icons-material'; // 1. Import ไอคอน Group
+import { Dashboard, Inventory, Receipt, Assessment, Group, ShoppingCart } from '@mui/icons-material'; // เพิ่ม ShoppingCart
 
 const menuItems = [
   { text: 'Overview', icon: <Dashboard />, path: '/overview' },
   { text: 'Products', icon: <Inventory />, path: '/products' },
-  // 2. เพิ่มเมนู Customers เข้าไปใน list
   { text: 'Customers', icon: <Group />, path: '/customers' },
+  { text: 'Sales', icon: <ShoppingCart />, path: '/sales' }, // เพิ่มเมนู Sales
   { text: 'Transactions', icon: <Receipt />, path: '/transactions' },
   { text: 'Reports', icon: <Assessment />, path: '/reports' },
 ];
