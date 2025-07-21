@@ -23,23 +23,25 @@ const ProductForm = ({ open, handleClose, productToEdit }) => {
   });
 
   useEffect(() => {
-    // ถ้ามี productToEdit (โหมดแก้ไข) ให้ตั้งค่าข้อมูลในฟอร์ม
     if (productToEdit) {
+      // FIX: แก้ไขการตั้งค่าข้อมูลให้ปลอดภัยขึ้น
+      // โดยใช้ String() และ Nullish Coalescing Operator (??) เพื่อป้องกัน error
+      // ถ้าค่าเป็น null หรือ undefined จะใช้ค่าว่าง ('') แทน
       setFormData({
-        name: productToEdit.name,
-        category: productToEdit.category,
-        quantity: productToEdit.quantity.toString(),
-        price: productToEdit.price.toString(),
-        lowStockThreshold: productToEdit.lowStockThreshold.toString(),
+        name: productToEdit.name || '',
+        category: productToEdit.category || '',
+        quantity: String(productToEdit.quantity ?? ''),
+        price: String(productToEdit.price ?? ''),
+        lowStockThreshold: String(productToEdit.lowStockThreshold ?? ''),
       });
     } else {
-      // ถ้าไม่มี (โหมดเพิ่มใหม่) ให้ล้างฟอร์ม
+      // สำหรับการเพิ่มสินค้าใหม่
       setFormData({
         name: '',
         category: '',
         quantity: '',
         price: '',
-        lowStockThreshold: '5', // ค่าเริ่มต้น
+        lowStockThreshold: '5', // ใส่ค่าเริ่มต้น
       });
     }
   }, [productToEdit, open]);
