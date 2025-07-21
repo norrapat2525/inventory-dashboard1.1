@@ -19,17 +19,25 @@ import useInventoryStore from '../stores/inventoryStore';
 import CustomerForm from '../components/customers/CustomerForm';
 import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
-// ====================================================================
-// 1. สร้างคอมโพเนนต์สำหรับแสดงตารางโดยเฉพาะ (รับข้อมูลที่ปลอดภัยแล้ว)
-// ====================================================================
-const CustomersTable = ({ customersData }) => {
+const CustomersPage = () => {
+  // --- 1. State Management ---
+  // State สำหรับตรวจสอบการ Hydration (รอให้ Client พร้อม)
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  // State จาก Zustand Store
+  const customers = useInventoryStore((state) => state.customers);
   const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
   
+  // State สำหรับควบคุม UI
   const [globalFilter, setGlobalFilter] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState(null);
   const [customerToDelete, setCustomerToDelete] = useState(null);
 
+  // --- 2. Handlers (ฟังก์ชันจัดการเหตุการณ์) ---
   const handleOpenForm = useCallback((customer = null) => {
     setCustomerToEdit(customer);
     setIsFormOpen(true);
@@ -55,6 +63,7 @@ const CustomersTable = ({ customersData }) => {
     }
   }, [customerToDelete, deleteCustomer, handleCloseDeleteDialog]);
 
+  // --- 3. การเตรียมข้อมูลสำหรับตาราง (ส่วนแก้ไขที่สำคัญที่สุด) ---
   const columns = useMemo(() => [
     { accessorKey: 'name', header: 'Customer Name' },
     { accessorKey: 'phone', header: 'Phone' },
@@ -75,8 +84,12 @@ const CustomersTable = ({ customersData }) => {
     },
   ], [handleOpenForm, handleOpenDeleteDialog]);
 
+  // FIX: สร้างตัวแปรข้อมูลที่ปลอดภัย รับประกันว่าเป็น Array เสมอ
+  // ก่อนที่ Client จะ Mount จะเป็น Array ว่าง, หลังจาก Mount แล้ว จะใช้ข้อมูลจาก Store
+  const tableData = useMemo(() => (hasMounted ? customers || [] : []), [hasMounted, customers]);
+
   const table = useReactTable({
-    data: customersData, // ใช้ข้อมูลที่รับมาจาก prop
+    data: tableData, // ใช้ข้อมูลที่ปลอดภัยแล้ว
     columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
@@ -84,6 +97,13 @@ const CustomersTable = ({ customersData }) => {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
+  // --- 4. การแสดงผล ---
+  // ถ้ายังไม่ Mount (ยังไม่พร้อม) ให้ไม่แสดงอะไรเลย เพื่อป้องกัน Error
+  if (!hasMounted) {
+    return null;
+  }
+
+  // เมื่อพร้อมแล้ว จึงแสดงผลหน้าทั้งหมด
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
@@ -146,27 +166,6 @@ const CustomersTable = ({ customersData }) => {
       />
     </Box>
   );
-}
-
-
-// ====================================================================
-// 2. คอมโพเนนต์หลัก ทำหน้าที่จัดการ Hydration
-// ====================================================================
-const CustomersPage = () => {
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  const customers = useInventoryStore((state) => state.customers);
-
-  // ถ้ายังไม่ Mount (ยังไม่พร้อม) ให้ไม่แสดงอะไรเลย
-  if (!hasMounted) {
-    return null; 
-  }
-
-  // เมื่อพร้อมแล้ว จึงส่งข้อมูลที่ปลอดภัย (customers || []) ไปให้ CustomersTable
-  return <CustomersTable customersData={customers || []} />;
 };
 
 export default CustomersPage;
