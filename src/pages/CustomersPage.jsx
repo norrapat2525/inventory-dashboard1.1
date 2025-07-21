@@ -21,24 +21,23 @@ import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const CustomersPage = () => {
   // --- 1. State Management ---
-  // ดึง State จาก Store
   const customersFromStore = useInventoryStore((state) => state.customers);
   const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
   
-  // FIX: สร้าง "สถานะที่ปลอดภัย" สำหรับเก็บข้อมูลลูกค้า
-  // โดยเริ่มต้นด้วย Array ว่างเสมอ
+  // พิมพ์ค่าที่ดึงมาจาก Store เพื่อดูว่าในตอนแรกมันคืออะไร
+  console.log("1. [Render] ค่าที่ดึงมาจาก Store โดยตรง:", customersFromStore);
+
   const [hydratedCustomers, setHydratedCustomers] = useState([]);
 
-  // useEffect จะทำงานเมื่อข้อมูลจาก Store พร้อมใช้งาน
   useEffect(() => {
-    // เมื่อ customersFromStore มีข้อมูล (ไม่ใช่ undefined)
-    // ให้อัปเดต "สถานะที่ปลอดภัย" ของเรา
+    // พิมพ์ค่าใน useEffect เพื่อดูว่ามันทำงานเมื่อไหร่และได้ค่าอะไรมา
+    console.log("2. [useEffect] ทำงาน. ค่า customersFromStore คือ:", customersFromStore);
     if (customersFromStore) {
+      console.log("3. [useEffect] ข้อมูลพร้อมใช้งาน, กำลังจะ setHydratedCustomers");
       setHydratedCustomers(customersFromStore);
     }
   }, [customersFromStore]);
   
-  // State สำหรับควบคุม UI
   const [globalFilter, setGlobalFilter] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState(null);
@@ -91,8 +90,11 @@ const CustomersPage = () => {
     },
   ], [handleOpenForm, handleOpenDeleteDialog]);
 
+  // พิมพ์ค่าสุดท้ายที่จะส่งเข้าตาราง เพื่อดูว่าเป็น Array ที่ถูกต้องหรือไม่
+  console.log("4. [Render] ข้อมูลที่จะส่งเข้าตาราง (hydratedCustomers):", hydratedCustomers);
+
   const table = useReactTable({
-    data: hydratedCustomers, // FIX: ใช้ข้อมูลจาก "สถานะที่ปลอดภัย" เสมอ
+    data: hydratedCustomers,
     columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
