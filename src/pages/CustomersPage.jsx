@@ -20,24 +20,26 @@ import CustomerForm from '../components/customers/CustomerForm';
 import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const CustomersPage = () => {
-  // --- 1. State Management ---
-  const customersFromStore = useInventoryStore((state) => state.customers);
+  // --- 1. State Management (วิธีใหม่) ---
+  // FIX: สร้าง State ในคอมโพเนนต์โดยดึงค่าเริ่มต้นโดยตรงจาก Store
+  const [customers, setCustomers] = useState(() => useInventoryStore.getState().customers || []);
+  
+  // FIX: ใช้ useEffect และ store.subscribe เพื่อคอยฟังการเปลี่ยนแปลง
+  useEffect(() => {
+    const unsubscribe = useInventoryStore.subscribe(
+      (state) => state.customers, // ฟังการเปลี่ยนแปลงของ customers
+      (newCustomers) => {
+        setCustomers(newCustomers || []); // อัปเดต State เมื่อมีการเปลี่ยนแปลง
+      }
+    );
+    // Cleanup subscription เมื่อคอมโพเนントถูกทำลาย
+    return () => unsubscribe();
+  }, []);
+
+  // ดึงแค่ฟังก์ชัน (Action) มาใช้งาน
   const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
   
-  // พิมพ์ค่าที่ดึงมาจาก Store เพื่อดูว่าในตอนแรกมันคืออะไร
-  console.log("1. [Render] ค่าที่ดึงมาจาก Store โดยตรง:", customersFromStore);
-
-  const [hydratedCustomers, setHydratedCustomers] = useState([]);
-
-  useEffect(() => {
-    // พิมพ์ค่าใน useEffect เพื่อดูว่ามันทำงานเมื่อไหร่และได้ค่าอะไรมา
-    console.log("2. [useEffect] ทำงาน. ค่า customersFromStore คือ:", customersFromStore);
-    if (customersFromStore) {
-      console.log("3. [useEffect] ข้อมูลพร้อมใช้งาน, กำลังจะ setHydratedCustomers");
-      setHydratedCustomers(customersFromStore);
-    }
-  }, [customersFromStore]);
-  
+  // State สำหรับควบคุม UI
   const [globalFilter, setGlobalFilter] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState(null);
@@ -90,11 +92,8 @@ const CustomersPage = () => {
     },
   ], [handleOpenForm, handleOpenDeleteDialog]);
 
-  // พิมพ์ค่าสุดท้ายที่จะส่งเข้าตาราง เพื่อดูว่าเป็น Array ที่ถูกต้องหรือไม่
-  console.log("4. [Render] ข้อมูลที่จะส่งเข้าตาราง (hydratedCustomers):", hydratedCustomers);
-
   const table = useReactTable({
-    data: hydratedCustomers,
+    data: customers, // ใช้ State ของคอมโพเนนต์นี้โดยตรง
     columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
