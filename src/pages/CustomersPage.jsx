@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react'; // 1. เพิ่ม useEffect
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useReactTable, getCoreRowModel, flexRender, getFilteredRowModel } from '@tanstack/react-table';
 import {
   Table,
@@ -20,7 +20,8 @@ import CustomerForm from '../components/customers/CustomerForm';
 import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const CustomersPage = () => {
-  const customers = useInventoryStore((state) => state.customers);
+  // FIX: เพิ่ม || [] เพื่อให้แน่ใจว่า customers เป็น array เสมอ
+  const customers = useInventoryStore((state) => state.customers || []);
   const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
   
   const [globalFilter, setGlobalFilter] = useState('');
@@ -28,7 +29,6 @@ const CustomersPage = () => {
   const [customerToEdit, setCustomerToEdit] = useState(null);
   const [customerToDelete, setCustomerToDelete] = useState(null);
 
-  // 2. เพิ่ม state สำหรับตรวจสอบการ Hydration
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => {
     setHasMounted(true);
@@ -88,7 +88,6 @@ const CustomersPage = () => {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  // 3. ถ้าข้อมูลยังไม่พร้อม ให้ยังไม่แสดงผล
   if (!hasMounted) {
     return null;
   }
