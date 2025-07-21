@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useReactTable, getCoreRowModel, flexRender, getFilteredRowModel } from '@tanstack/react-table';
 import {
   Table,
@@ -18,21 +18,44 @@ import { Edit, Delete } from '@mui/icons-material';
 import useInventoryStore from '../stores/inventoryStore'; 
 import CustomerForm from '../components/customers/CustomerForm';
 import ConfirmationDialog from '../components/common/ConfirmationDialog';
-import ClientOnly from '../components/common/ClientOnly'; // 1. Import เกราะป้องกันเข้ามา
 
 const CustomersPage = () => {
-  // --- State Management ---
-  // กลับมาใช้วิธีดึงข้อมูลแบบปกติได้ เพราะ ClientOnly จะป้องกันปัญหาให้เราแล้ว
-  const customers = useInventoryStore((state) => state.customers);
-  const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
+  // --- 1. State Management (วิธีใหม่ที่ปลอดภัยที่สุด) ---
+  // State สำหรับตรวจสอบว่า Client พร้อมทำงานแล้วหรือยัง
+  const [hasMounted, setHasMounted] = useState(false);
   
+  // State ที่ปลอดภัยสำหรับเก็บข้อมูลลูกค้า โดยเริ่มต้นด้วย Array ว่างเสมอ
+  const [safeCustomers, setSafeCustomers] = useState([]);
+
+  // ดึงแค่ฟังก์ชัน (Action) มาใช้งานโดยตรง
+  const deleteCustomer = useInventoryStore.getState().deleteCustomer;
+
+  // useEffect จะทำงาน *หลังจาก* ที่ Client พร้อมแล้วเท่านั้น
+  useEffect(() => {
+    setHasMounted(true); // ตั้งค่าว่า Client พร้อมแล้ว
+
+    // ดึงข้อมูลลูกค้าล่าสุดจาก Store มาใส่ใน State ที่ปลอดภัยของเรา
+    setSafeCustomers(useInventoryStore.getState().customers || []);
+
+    // สมัครรับการเปลี่ยนแปลงจาก Store
+    const unsubscribe = useInventoryStore.subscribe(
+      (state) => {
+        // เมื่อข้อมูลลูกค้าใน Store เปลี่ยนแปลง ให้อัปเดต State ที่ปลอดภัยของเราตาม
+        setSafeCustomers(state.customers || []);
+      }
+    );
+
+    // Cleanup subscription เมื่อคอมโพเนントถูกทำลาย
+    return () => unsubscribe();
+  }, []); // useEffect นี้จะทำงานแค่ครั้งเดียวหลังจาก Mount
+
   // State สำหรับควบคุม UI
   const [globalFilter, setGlobalFilter] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState(null);
   const [customerToDelete, setCustomerToDelete] = useState(null);
 
-  // --- Handlers ---
+  // --- 2. Handlers (ฟังก์ชันจัดการเหตุการณ์) ---
   const handleOpenForm = useCallback((customer = null) => {
     setCustomerToEdit(customer);
     setIsFormOpen(true);
@@ -58,7 +81,7 @@ const CustomersPage = () => {
     }
   }, [customerToDelete, deleteCustomer, handleCloseDeleteDialog]);
 
-  // --- การเตรียมข้อมูลสำหรับตาราง ---
+  // --- 3. การเตรียมข้อมูลสำหรับตาราง ---
   const columns = useMemo(() => [
     { accessorKey: 'name', header: 'Customer Name' },
     { accessorKey: 'phone', header: 'Phone' },
@@ -78,12 +101,9 @@ const CustomersPage = () => {
       ),
     },
   ], [handleOpenForm, handleOpenDeleteDialog]);
-  
-  // ใช้ useMemo เพื่อให้แน่ใจว่าข้อมูลเป็น Array เสมอ
-  const tableData = useMemo(() => customers || [], [customers]);
 
   const table = useReactTable({
-    data: tableData,
+    data: safeCustomers, // ใช้ข้อมูลจาก "State ที่ปลอดภัย" เสมอ
     columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
@@ -91,71 +111,73 @@ const CustomersPage = () => {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  // --- 2. การแสดงผล ---
-  // นำ ClientOnly มา "หุ้ม" เนื้อหาทั้งหมด
+  // --- 4. การแสดงผล ---
+  // ถ้า Client ยังไม่พร้อม ให้ไม่แสดงอะไรเลย เพื่อป้องกัน Error
+  if (!hasMounted) {
+    return null;
+  }
+
   return (
-    <ClientOnly>
-      <Box>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h4" gutterBottom>Customer List</Typography>
-          <Button variant="contained" color="primary" onClick={() => handleOpenForm()}>
-            Add New Customer
-          </Button>
-        </Box>
+    <Box>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h4" gutterBottom>Customer List</Typography>
+        <Button variant="contained" color="primary" onClick={() => handleOpenForm()}>
+          Add New Customer
+        </Button>
+      </Box>
 
-        <Box mb={2}>
-          <TextField
-            value={globalFilter ?? ''}
-            onChange={e => setGlobalFilter(e.target.value)}
-            placeholder="Search all columns..."
-            variant="outlined"
-            size="small"
-            fullWidth
-          />
-        </Box>
-
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              {table.getHeaderGroups().map(headerGroup => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map(header => (
-                    <TableCell key={header.id} sx={{ fontWeight: 'bold' }}>
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHead>
-            <TableBody>
-              {table.getRowModel().rows.map(row => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <CustomerForm 
-          open={isFormOpen} 
-          handleClose={handleCloseForm}
-          customerToEdit={customerToEdit}
-        />
-
-        <ConfirmationDialog
-          open={!!customerToDelete}
-          onClose={handleCloseDeleteDialog}
-          onConfirm={handleConfirmDelete}
-          title="Confirm Deletion"
-          message={`Are you sure you want to delete the customer "${customerToDelete?.name}"?`}
+      <Box mb={2}>
+        <TextField
+          value={globalFilter ?? ''}
+          onChange={e => setGlobalFilter(e.target.value)}
+          placeholder="Search all columns..."
+          variant="outlined"
+          size="small"
+          fullWidth
         />
       </Box>
-    </ClientOnly>
+
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <TableCell key={header.id} sx={{ fontWeight: 'bold' }}>
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableHead>
+          <TableBody>
+            {table.getRowModel().rows.map(row => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map(cell => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <CustomerForm 
+        open={isFormOpen} 
+        handleClose={handleCloseForm}
+        customerToEdit={customerToEdit}
+      />
+
+      <ConfirmationDialog
+        open={!!customerToDelete}
+        onClose={handleCloseDeleteDialog}
+        onConfirm={handleConfirmDelete}
+        title="Confirm Deletion"
+        message={`Are you sure you want to delete the customer "${customerToDelete?.name}"?`}
+      />
+    </Box>
   );
 };
 
