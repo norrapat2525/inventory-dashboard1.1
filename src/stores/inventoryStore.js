@@ -12,15 +12,16 @@ const useInventoryStore = create(
         { id: 4, name: 'Coffee Mug', category: 'Home & Kitchen', quantity: 25, price: 15, lowStockThreshold: 5 },
         { id: 5, name: 'Wireless Mouse', category: 'Electronics', quantity: 3, price: 45, lowStockThreshold: 5 },
       ],
+      // --- แก้ไขข้อมูลเริ่มต้น ให้มี amount ---
       transactions: [
-        { id: 1, productId: 1, type: 'in', quantity: 20, date: '2024-01-15', note: 'Initial stock' },
-        { id: 2, productId: 2, type: 'out', quantity: 2, date: '2024-01-16', note: 'Sale to customer' },
-        { id: 3, productId: 4, type: 'in', quantity: 50, date: '2024-01-17', note: 'Bulk purchase' },
+        { id: 1, productId: 1, type: 'in', quantity: 20, date: '2024-01-15', note: 'Initial stock', amount: 19980 },
+        { id: 2, productId: 2, type: 'out', quantity: 2, date: '2024-01-16', note: 'Sale to customer', amount: 2398 },
+        { id: 3, productId: 4, type: 'in', quantity: 50, date: '2024-01-17', note: 'Bulk purchase', amount: 750 },
       ],
       notifications: [],
 
       //================== ACTIONS (ฟังก์ชันจัดการข้อมูล) ==================
-      // Product Actions
+      // Product Actions (ไม่มีการเปลี่ยนแปลง)
       addProduct: (product) => {
         const newProduct = {
           ...product,
@@ -56,26 +57,30 @@ const useInventoryStore = create(
         }
       },
 
-      // Transaction Actions
+      // --- แก้ไข Transaction Actions ---
       addTransaction: (transaction) => {
+        const product = get().products.find(p => p.id === transaction.productId);
+        if (!product) return; // หยุดถ้าไม่เจอสินค้า
+
         const newTransaction = {
           ...transaction,
           id: Date.now(),
           date: new Date().toISOString().split('T')[0],
+          // คำนวณ amount จากราคาสินค้า
+          amount: (Number(product.price) || 0) * (Number(transaction.quantity) || 0),
         };
+        
         set((state) => ({
           transactions: [newTransaction, ...state.transactions]
         }));
         
+        // อัปเดตจำนวนสินค้าในสต็อก
         const quantityChange = transaction.type === 'in' ? Number(transaction.quantity) : -Number(transaction.quantity);
-        const product = get().products.find(p => p.id === transaction.productId);
-        if (product) {
-            const newQuantity = Math.max(0, product.quantity + quantityChange);
-            get().updateProduct(transaction.productId, { ...product, quantity: newQuantity });
-        }
+        const newQuantity = Math.max(0, product.quantity + quantityChange);
+        get().updateProduct(transaction.productId, { ...product, quantity: newQuantity });
       },
 
-      // Notification Actions
+      // Notification Actions (ไม่มีการเปลี่ยนแปลง)
       addNotification: (notification) => {
         set((state) => ({
           notifications: [...state.notifications, { ...notification, id: Date.now(), timestamp: new Date().toISOString() }]
@@ -87,7 +92,7 @@ const useInventoryStore = create(
         }));
       },
 
-      //================== HELPERS / GETTERS (ฟังก์ชันดึงข้อมูลสรุป) ==================
+      //================== HELPERS / GETTERS (ไม่มีการเปลี่ยนแปลง) ==================
       getLowStockProducts: () => {
         return get().products.filter(p => p.quantity > 0 && p.quantity <= p.lowStockThreshold);
       },
@@ -106,7 +111,7 @@ const useInventoryStore = create(
       },
     }),
     {
-      name: 'inventory-storage', // key for localStorage
+      name: 'inventory-storage',
       partialize: (state) => ({
         products: state.products,
         transactions: state.transactions
