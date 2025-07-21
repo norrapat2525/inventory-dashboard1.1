@@ -1,18 +1,16 @@
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
-import { Box } from '@mui/material'; // หรือ Layout component หลักของคุณ
+import DashboardLayout from './components/layout/DashboardLayout'; // 1. Import the main Layout
 
 function App() {
   return (
     <Router>
-      <Box sx={{ display: 'flex' }}>
-        {/* คุณสามารถเพิ่ม Sidebar หรือ Navbar ตรงนี้ได้ */}
-        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-          {/* AppRoutes จะเป็นตัวสลับหน้าเพจต่างๆ */}
-          <AppRoutes />
-        </Box>
-      </Box>
+      {/* 2. Use DashboardLayout to frame every page */}
+      <DashboardLayout>
+        {/* 3. AppRoutes will handle switching content based on the URL */}
+        <AppRoutes />
+      </DashboardLayout>
     </Router>
   );
 }
