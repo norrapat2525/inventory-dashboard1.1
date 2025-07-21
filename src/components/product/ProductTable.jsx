@@ -17,14 +17,47 @@ import {
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
 import useInventoryStore from '../../stores/inventoryStore';
-import ProductForm from './ProductForm'; // 1. Import ฟอร์มที่เราสร้าง
+import ProductForm from './ProductForm';
+import ConfirmationDialog from '../common/ConfirmationDialog'; // 1. Import หน้าต่างยืนยัน
 
 const ProductTable = () => {
-  const products = useInventoryStore((state) => state.products);
-  const [globalFilter, setGlobalFilter] = useState('');
+  const { products, deleteProduct } = useInventoryStore((state) => ({
+    products: state.products,
+    deleteProduct: state.deleteProduct,
+  }));
   
-  // 2. State สำหรับควบคุมการเปิด/ปิดฟอร์ม
+  const [globalFilter, setGlobalFilter] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // 2. State สำหรับเก็บข้อมูลสินค้าที่จะแก้ไข และ ID ที่จะลบ
+  const [productToEdit, setProductToEdit] = useState(null);
+  const [productToDelete, setProductToDelete] = useState(null);
+
+  // 3. ฟังก์ชันสำหรับจัดการการเปิด/ปิด Dialog
+  const handleOpenForm = (product = null) => {
+    setProductToEdit(product);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setProductToEdit(null);
+  };
+
+  const handleOpenDeleteDialog = (product) => {
+    setProductToDelete(product);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setProductToDelete(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (productToDelete) {
+      deleteProduct(productToDelete.id);
+      handleCloseDeleteDialog();
+    }
+  };
 
   const columns = useMemo(() => [
     {
@@ -68,18 +101,19 @@ const ProductTable = () => {
     {
       id: 'actions',
       header: 'Actions',
-      cell: () => (
+      // 4. ทำให้ปุ่ม Edit และ Delete ใช้งานได้
+      cell: ({ row }) => (
         <Box>
-          <IconButton size="small" color="primary">
+          <IconButton size="small" color="primary" onClick={() => handleOpenForm(row.original)}>
             <Edit fontSize="inherit" />
           </IconButton>
-          <IconButton size="small" color="error">
+          <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(row.original)}>
             <Delete fontSize="inherit" />
           </IconButton>
         </Box>
       ),
     },
-  ], []);
+  ], [deleteProduct]); // เพิ่ม deleteProduct ใน dependency array
 
   const table = useReactTable({
     data: products,
@@ -96,8 +130,7 @@ const ProductTable = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h4" gutterBottom>Product List</Typography>
-        {/* 3. ปุ่มสำหรับเปิดฟอร์ม */}
-        <Button variant="contained" color="primary" onClick={() => setIsFormOpen(true)}>
+        <Button variant="contained" color="primary" onClick={() => handleOpenForm()}>
           Add New Product
         </Button>
       </Box>
@@ -140,10 +173,20 @@ const ProductTable = () => {
         </Table>
       </TableContainer>
 
-      {/* 4. เรียกใช้ฟอร์มและส่ง props เพื่อควบคุม */}
+      {/* 5. เรียกใช้ฟอร์มและส่ง props สำหรับการแก้ไข */}
       <ProductForm 
         open={isFormOpen} 
-        handleClose={() => setIsFormOpen(false)} 
+        handleClose={handleCloseForm}
+        productToEdit={productToEdit}
+      />
+
+      {/* 6. เรียกใช้หน้าต่างยืนยันการลบ */}
+      <ConfirmationDialog
+        open={!!productToDelete}
+        onClose={handleCloseDeleteDialog}
+        onConfirm={handleConfirmDelete}
+        title="Confirm Deletion"
+        message={`Are you sure you want to delete the product "${productToDelete?.name}"? This action cannot be undone.`}
       />
     </Box>
   );
