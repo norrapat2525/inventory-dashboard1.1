@@ -21,29 +21,35 @@ import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const CustomersPage = () => {
   // --- 1. State Management (วิธีใหม่ที่ปลอดภัยที่สุด) ---
-  // State สำหรับตรวจสอบว่า Client พร้อมทำงานแล้วหรือยัง
   const [hasMounted, setHasMounted] = useState(false);
-  
-  // State ที่ปลอดภัยสำหรับเก็บข้อมูลลูกค้า โดยเริ่มต้นด้วย Array ว่างเสมอ
   const [safeCustomers, setSafeCustomers] = useState([]);
+  const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
 
-  // ดึงแค่ฟังก์ชัน (Action) มาใช้งานโดยตรง
-  const deleteCustomer = useInventoryStore.getState().deleteCustomer;
-
-  // useEffect จะทำงาน *หลังจาก* ที่ Client พร้อมแล้วเท่านั้น
   useEffect(() => {
-    setHasMounted(true); // ตั้งค่าว่า Client พร้อมแล้ว
+    setHasMounted(true);
 
-    // ดึงข้อมูลลูกค้าล่าสุดจาก Store มาใส่ใน State ที่ปลอดภัยของเรา
-    setSafeCustomers(useInventoryStore.getState().customers || []);
+    // FIX: สร้างฟังก์ชันสำหรับตรวจสอบและตั้งค่าข้อมูลอย่างปลอดภัย
+    const safelySetCustomers = () => {
+      const customersFromState = useInventoryStore.getState().customers;
 
-    // สมัครรับการเปลี่ยนแปลงจาก Store
-    const unsubscribe = useInventoryStore.subscribe(
-      (state) => {
-        // เมื่อข้อมูลลูกค้าใน Store เปลี่ยนแปลง ให้อัปเดต State ที่ปลอดภัยของเราตาม
-        setSafeCustomers(state.customers || []);
+      // เกราะป้องกันชั้นสุดท้าย: ตรวจสอบว่าข้อมูลเป็น Array หรือไม่
+      if (Array.isArray(customersFromState)) {
+        setSafeCustomers(customersFromState);
+      } else {
+        // ถ้าข้อมูลเสียหาย ให้ใช้ Array ว่างแทน และแจ้งเตือนใน Console
+        console.warn(
+          "ข้อมูลลูกค้าจาก Storage ไม่ใช่ Array, กำลังใช้ค่าเริ่มต้นเป็น Array ว่าง.",
+          customersFromState
+        );
+        setSafeCustomers([]);
       }
-    );
+    };
+
+    // ตั้งค่าข้อมูลครั้งแรกหลังจาก Client พร้อมทำงาน
+    safelySetCustomers();
+
+    // สมัครรับการเปลี่ยนแปลงจาก Store โดยใช้ฟังก์ชันที่ปลอดภัยของเรา
+    const unsubscribe = useInventoryStore.subscribe(safelySetCustomers);
 
     // Cleanup subscription เมื่อคอมโพเนントถูกทำลาย
     return () => unsubscribe();
@@ -112,9 +118,8 @@ const CustomersPage = () => {
   });
 
   // --- 4. การแสดงผล ---
-  // ถ้า Client ยังไม่พร้อม ให้ไม่แสดงอะไรเลย เพื่อป้องกัน Error
   if (!hasMounted) {
-    return null;
+    return null; // รอให้ Client พร้อมก่อน
   }
 
   return (
