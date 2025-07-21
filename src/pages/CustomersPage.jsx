@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react'; // 1. เพิ่ม useEffect
 import { useReactTable, getCoreRowModel, flexRender, getFilteredRowModel } from '@tanstack/react-table';
 import {
   Table,
@@ -15,7 +15,6 @@ import {
   TextField,
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
-// 1. แก้ไข Path ให้ถูกต้อง
 import useInventoryStore from '../stores/inventoryStore'; 
 import CustomerForm from '../components/customers/CustomerForm';
 import ConfirmationDialog from '../components/common/ConfirmationDialog';
@@ -28,6 +27,12 @@ const CustomersPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState(null);
   const [customerToDelete, setCustomerToDelete] = useState(null);
+
+  // 2. เพิ่ม state สำหรับตรวจสอบการ Hydration
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const handleOpenForm = useCallback((customer = null) => {
     setCustomerToEdit(customer);
@@ -82,6 +87,11 @@ const CustomersPage = () => {
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
+
+  // 3. ถ้าข้อมูลยังไม่พร้อม ให้ยังไม่แสดงผล
+  if (!hasMounted) {
+    return null;
+  }
 
   return (
     <Box>
