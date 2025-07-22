@@ -11,23 +11,73 @@ import {
   TrendingUp, 
   TrendingDown, 
   Inventory, 
-  Warning 
+  Warning,
+  AttachMoney,
+  ShoppingCart,
+  ErrorOutline,
+  CheckCircle
 } from '@mui/icons-material';
 import useInventoryStore from '../stores/inventoryStore';
 
-const StatCard = ({ title, value, icon, color }) => (
-  <Card elevation={3} sx={{ height: '100%' }}>
-    <CardContent>
-      <Box display="flex" alignItems="center" justifyContent="space-between">
+const StatCard = ({ title, value, icon, color, cardType }) => (
+  <Card 
+    className={`dashboard-card ${cardType}`} 
+    elevation={0}
+    sx={{ 
+      height: '100%',
+      cursor: 'pointer',
+      '&:hover': {
+        '& .card-icon': {
+          transform: 'scale(1.1) rotate(5deg)',
+        }
+      }
+    }}
+  >
+    <CardContent className="card-content" sx={{ p: 2 }}>
+      <Box className="card-header" display="flex" alignItems="center" justifyContent="space-between">
         <Box>
-          <Typography color="textSecondary" gutterBottom variant="h6">
+          <Typography 
+            className="card-title"
+            color="textSecondary" 
+            gutterBottom 
+            variant="subtitle2"
+            sx={{ fontSize: '0.9rem', fontWeight: 600, textTransform: 'uppercase' }}
+          >
             {title}
           </Typography>
-          <Typography variant="h4" component="h2" sx={{ color }}>
+          <Typography 
+            className="card-value"
+            variant="h3" 
+            component="h2" 
+            sx={{ 
+              fontWeight: 700,
+              fontSize: { xs: '1.75rem', md: '2.25rem' },
+              mb: 0.5
+            }}
+          >
             {value}
           </Typography>
+          <Typography 
+            className="card-label"
+            variant="caption" 
+            sx={{ fontSize: '0.8rem', opacity: 0.8 }}
+          >
+            {title === 'Total Products' && 'Items in inventory'}
+            {title === 'Total Value' && 'Current inventory value'}
+            {title === 'Low Stock Items' && 'Need attention'}
+            {title === 'Out of Stock' && 'Urgent restocking'}
+          </Typography>
         </Box>
-        <Box sx={{ color, opacity: 0.7, fontSize: 40 }}>
+        <Box 
+          className="card-icon"
+          sx={{ 
+            fontSize: { xs: '2rem', md: '2.5rem' },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           {icon}
         </Box>
       </Box>
@@ -36,30 +86,65 @@ const StatCard = ({ title, value, icon, color }) => (
 );
 
 const RecentActivity = ({ sales }) => (
-  <Card elevation={3}>
-    <CardContent>
-      <Typography variant="h6" gutterBottom>
+  <Card 
+    className="recent-sales-card dashboard-paper"
+    elevation={0}
+    sx={{ height: '100%' }}
+  >
+    <CardContent sx={{ p: 2 }}>
+      <Typography 
+        variant="h6" 
+        gutterBottom
+        sx={{ 
+          fontWeight: 600, 
+          mb: 2,
+          color: 'var(--text-primary)',
+          fontSize: '1.25rem'
+        }}
+      >
         Recent Sales
       </Typography>
       {sales.length === 0 ? (
-        <Typography color="textSecondary">
-          No recent sales
-        </Typography>
+        <Box className="no-sales-message" sx={{ textAlign: 'center', py: 3 }}>
+          <ShoppingCart sx={{ fontSize: 48, color: 'var(--text-secondary)', mb: 1 }} />
+          <Typography 
+            color="textSecondary"
+            sx={{ fontStyle: 'italic', fontSize: '0.95rem' }}
+          >
+            No recent sales
+          </Typography>
+        </Box>
       ) : (
         <Box>
           {sales.slice(0, 5).map((sale, index) => (
             <Box 
               key={sale.id}
+              className="sale-item"
               sx={{ 
-                py: 1, 
-                borderBottom: index < 4 ? `1px solid #eee` : 'none' 
+                py: 1.5,
+                px: 1,
+                borderRadius: '8px',
+                mb: 1,
+                borderBottom: index < 4 ? `1px solid var(--border-color)` : 'none',
+                transition: 'var(--transition)',
+                '&:hover': {
+                  backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                  transform: 'translateX(4px)',
+                }
               }}
             >
-              <Typography variant="body2">
+              <Typography 
+                variant="body2" 
+                sx={{ fontWeight: 600, color: 'var(--text-primary)' }}
+              >
                 <strong>Sale {sale.id}</strong>
                 {' - Customer: ' + (sale.customerName || 'Walk-in')}
               </Typography>
-              <Typography variant="caption" color="textSecondary">
+              <Typography 
+                variant="caption" 
+                color="textSecondary"
+                sx={{ fontSize: '0.8rem' }}
+              >
                 {sale.date} - Total: ${sale.totalAmount?.toLocaleString() || 0}
               </Typography>
             </Box>
@@ -72,42 +157,118 @@ const RecentActivity = ({ sales }) => (
 
 const LowStockAlert = ({ lowStockProducts, outOfStockProducts }) => {
   return (
-    <Card elevation={3}>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
+    <Card 
+      className="stock-alerts-card dashboard-paper"
+      elevation={0}
+      sx={{ height: '100%' }}
+    >
+      <CardContent sx={{ p: 2 }}>
+        <Typography 
+          variant="h6" 
+          gutterBottom
+          sx={{ 
+            fontWeight: 600, 
+            mb: 2,
+            color: 'var(--text-primary)',
+            fontSize: '1.25rem'
+          }}
+        >
           Stock Alerts
         </Typography>
         
         {outOfStockProducts.length > 0 && (
           <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" color="error" gutterBottom>
+            <Typography 
+              variant="subtitle2" 
+              gutterBottom
+              sx={{ 
+                color: 'var(--danger-color)', 
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                mb: 1
+              }}
+            >
+              <ErrorOutline fontSize="small" />
               Out of Stock ({outOfStockProducts.length})
             </Typography>
             {outOfStockProducts.map(product => (
-              <Typography key={product.id} variant="body2" color="error">
-                • {product.name}
-              </Typography>
+              <Box 
+                key={product.id} 
+                className="alert-item"
+                sx={{ mb: 0.5 }}
+              >
+                <Box className="alert-icon">!</Box>
+                <Typography 
+                  className="alert-text"
+                  variant="body2"
+                  sx={{ fontSize: '0.9rem' }}
+                >
+                  {product.name}
+                </Typography>
+              </Box>
             ))}
           </Box>
         )}
         
         {lowStockProducts.length > 0 && (
-          <Box>
-            <Typography variant="subtitle2" color="warning.main" gutterBottom>
+          <Box sx={{ mb: 2 }}>
+            <Typography 
+              variant="subtitle2" 
+              gutterBottom
+              sx={{ 
+                color: 'var(--warning-color)', 
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                mb: 1
+              }}
+            >
+              <Warning fontSize="small" />
               Low Stock ({lowStockProducts.length})
             </Typography>
             {lowStockProducts.map(product => (
-              <Typography key={product.id} variant="body2" color="warning.main">
-                • {product.name} (Qty: {product.quantity})
-              </Typography>
+              <Box 
+                key={product.id} 
+                className="alert-item"
+                sx={{ mb: 0.5 }}
+              >
+                <Box className="alert-icon">⚠</Box>
+                <Typography 
+                  className="alert-text"
+                  variant="body2"
+                  sx={{ fontSize: '0.9rem' }}
+                >
+                  {product.name} (Qty: {product.quantity})
+                </Typography>
+              </Box>
             ))}
           </Box>
         )}
         
         {lowStockProducts.length === 0 && outOfStockProducts.length === 0 && (
-          <Typography color="success.main">
-            All products are well stocked!
-          </Typography>
+          <Box 
+            sx={{ 
+              textAlign: 'center', 
+              py: 3,
+              background: 'rgba(16, 185, 129, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(16, 185, 129, 0.2)'
+            }}
+          >
+            <CheckCircle sx={{ fontSize: 48, color: 'var(--success-color)', mb: 1 }} />
+            <Typography 
+              sx={{ 
+                color: 'var(--success-color)', 
+                fontWeight: 600,
+                fontSize: '0.95rem'
+              }}
+            >
+              All products are well stocked!
+            </Typography>
+          </Box>
         )}
       </CardContent>
     </Card>
@@ -190,66 +351,119 @@ const DashboardOverview = () => {
 
   if (isLoading || !isClient || !isHydrated) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '60vh',
-        flexDirection: 'column' 
-      }}>
-        <CircularProgress size={60} />
-        <Typography sx={{ mt: 2 }}>Loading dashboard...</Typography>
+      <Box 
+        className="loading-container"
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '60vh',
+          flexDirection: 'column' 
+        }}
+      >
+        <CircularProgress 
+          size={60} 
+          sx={{ color: 'var(--primary-color)' }}
+        />
+        <Typography 
+          sx={{ 
+            mt: 2, 
+            color: 'white',
+            fontWeight: 500
+          }}
+        >
+          Loading dashboard...
+        </Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
-        Dashboard Overview
-      </Typography>
+    <Box className="dashboard-content" sx={{ flexGrow: 1 }}>
+      {/* Dashboard Header */}
+      <Box className="dashboard-header" sx={{ mb: 3 }}>
+        <Typography 
+          className="dashboard-title"
+          variant="h4" 
+          component="h1"
+          gutterBottom 
+          sx={{ mb: 1 }}
+        >
+          Dashboard Overview
+        </Typography>
+        <Typography 
+          className="dashboard-subtitle"
+          variant="body1"
+        >
+          Monitor your inventory performance and status
+        </Typography>
+      </Box>
       
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard 
-            title="Total Products" 
-            value={stats.totalProducts} 
-            icon={<Inventory />} 
-            color="primary.main" 
-          />
+      {/* Overview Section */}
+      <Box className="overview-section">
+        <Typography className="section-title" component="h2">
+          📊 Overview
+        </Typography>
+        
+        <Grid container className="cards-grid" spacing={2}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box className="fade-in" sx={{ animationDelay: '0.1s' }}>
+              <StatCard 
+                title="Total Products" 
+                value={stats.totalProducts} 
+                icon={<Inventory />} 
+                color="var(--primary-color)"
+                cardType="card-products"
+              />
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box className="fade-in" sx={{ animationDelay: '0.2s' }}>
+              <StatCard 
+                title="Total Value" 
+                value={`$${stats.totalValue.toLocaleString()}`} 
+                icon={<AttachMoney />} 
+                color="var(--success-color)"
+                cardType="card-value-total"
+              />
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box className="fade-in" sx={{ animationDelay: '0.3s' }}>
+              <StatCard 
+                title="Low Stock Items" 
+                value={stats.lowStockCount} 
+                icon={<Warning />} 
+                color="var(--warning-color)"
+                cardType="card-low-stock"
+              />
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box className="fade-in" sx={{ animationDelay: '0.4s' }}>
+              <StatCard 
+                title="Out of Stock" 
+                value={stats.outOfStockCount} 
+                icon={<TrendingDown />} 
+                color="var(--danger-color)"
+                cardType="card-out-stock"
+              />
+            </Box>
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard 
-            title="Total Value" 
-            value={`$${stats.totalValue.toLocaleString()}`} 
-            icon={<TrendingUp />} 
-            color="success.main" 
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard 
-            title="Low Stock Items" 
-            value={stats.lowStockCount} 
-            icon={<Warning />} 
-            color="warning.main" 
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard 
-            title="Out of Stock" 
-            value={stats.outOfStockCount} 
-            icon={<TrendingDown />} 
-            color="error.main" 
-          />
-        </Grid>
-      </Grid>
+      </Box>
 
-      <Grid container spacing={3}>
+      {/* Secondary Cards */}
+      <Grid container className="secondary-cards" spacing={2}>
         <Grid item xs={12} md={6}>
-          <RecentActivity sales={sales} />
+          <Box className="slide-up" sx={{ animationDelay: '0.5s' }}>
+            <RecentActivity sales={sales} />
+          </Box>
         </Grid>
         <Grid item xs={12} md={6}>
-          <LowStockAlert lowStockProducts={lowStockItems} outOfStockProducts={outOfStockItems} />
+          <Box className="slide-up" sx={{ animationDelay: '0.6s' }}>
+            <LowStockAlert lowStockProducts={lowStockItems} outOfStockProducts={outOfStockItems} />
+          </Box>
         </Grid>
       </Grid>
     </Box>
