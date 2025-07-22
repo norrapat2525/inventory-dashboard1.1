@@ -51,7 +51,7 @@ const CustomersPage = () => {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <Box>
+        <Box sx={{ display: 'flex' }}>
           <IconButton size="small" color="primary" onClick={() => handleOpenForm(row.original)}><Edit fontSize="inherit" /></IconButton>
           <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(row.original)}><Delete fontSize="inherit" /></IconButton>
         </Box>
@@ -86,28 +86,33 @@ const CustomersPage = () => {
           fullWidth
         />
       </Box>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <TableCell key={header.id} sx={{ fontWeight: 'bold' }}>{flexRender(header.column.columnDef.header, header.getContext())}</TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableHead>
-          <TableBody>
-            {table.getRowModel().rows.map(row => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map(cell => (
-                  <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+
+      {/* FIX: ทำให้ตารางสามารถ scroll แนวนอนได้บนมือถือ */}
+      <Paper sx={{ width: '100%', overflowX: 'auto' }}>
+        <TableContainer>
+          <Table sx={{ minWidth: 650 }} aria-label="simple table">
+            <TableHead>
+              {table.getHeaderGroups().map(headerGroup => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <TableCell key={header.id} sx={{ fontWeight: 'bold' }}>{flexRender(header.column.columnDef.header, header.getContext())}</TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHead>
+            <TableBody>
+              {table.getRowModel().rows.map(row => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+
       <CustomerForm open={isFormOpen} handleClose={handleCloseForm} customerToEdit={customerToEdit} />
       <ConfirmationDialog
         open={!!customerToDelete}

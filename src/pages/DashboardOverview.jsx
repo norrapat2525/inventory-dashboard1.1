@@ -122,13 +122,14 @@ const DashboardOverview = () => {
       <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 4 }}>
         Dashboard Overview
       </Typography>
-      <Grid container spacing={{ xs: 2, md: 3 }}>
-        <Grid item xs={12} sm={6} lg={3}><StatCard title="Total Products" value={stats.totalProducts} icon={<Inventory />} color="primary.main" bgColor="primary.light" /></Grid>
-        <Grid item xs={12} sm={6} lg={3}><StatCard title="Total Value" value={`$${stats.totalValue.toLocaleString()}`} icon={<TrendingUp />} color="success.main" bgColor="success.light" /></Grid>
-        <Grid item xs={12} sm={6} lg={3}><StatCard title="Low Stock Items" value={stats.lowStockCount} icon={<Warning />} color="warning.main" bgColor="warning.light" /></Grid>
-        <Grid item xs={12} sm={6} lg={3}><StatCard title="Out of Stock" value={stats.outOfStockCount} icon={<TrendingDown />} color="error.main" bgColor="error.light" /></Grid>
-      </Grid>
-      <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mt: 2 }}>
+      {/* FIX: ปรับปรุง Grid ให้รองรับทุกขนาดหน้าจอ */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Products" value={stats.totalProducts} icon={<Inventory />} color="primary.main" bgColor="primary.light" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Value" value={`$${stats.totalValue.toLocaleString()}`} icon={<TrendingUp />} color="success.main" bgColor="success.light" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Low Stock Items" value={stats.lowStockCount} icon={<Warning />} color="warning.main" bgColor="warning.light" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Out of Stock" value={stats.outOfStockCount} icon={<TrendingDown />} color="error.main" bgColor="error.light" /></Grid>
+      
+        {/* FIX: ทำให้การ์ด 2 อันล่างเรียงเป็นแนวตั้งบนมือถือ */}
         <Grid item xs={12} lg={6}><RecentActivity transactions={transactions} /></Grid>
         <Grid item xs={12} lg={6}><LowStockAlert lowStockProducts={lowStockItems} outOfStockProducts={outOfStockItems} /></Grid>
       </Grid>
