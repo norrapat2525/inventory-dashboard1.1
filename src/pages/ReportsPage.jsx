@@ -20,7 +20,7 @@ import useInventoryStore from '../stores/inventoryStore';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
-// [UI Improvement] การ์ดสรุปข้อมูลที่ออกแบบใหม่
+// การ์ดสรุปข้อมูลที่ออกแบบใหม่
 const StatCard = ({ title, value, icon, bgColor, color }) => (
   <Card elevation={3} sx={{ display: 'flex', alignItems: 'center', p: 2.5, borderRadius: 2, height: '100%' }}>
     <Avatar sx={{ bgcolor: bgColor, color: color, width: 56, height: 56, mr: 2 }}>{icon}</Avatar>
@@ -31,7 +31,7 @@ const StatCard = ({ title, value, icon, bgColor, color }) => (
   </Card>
 );
 
-// [UI Improvement] Custom Tooltip สำหรับกราฟ
+// Custom Tooltip สำหรับกราฟ
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -107,15 +107,14 @@ const ReportsPage = () => {
         Sales & Inventory Reports
       </Typography>
       
-      {/* ส่วนที่ 1: การ์ดสรุปข้อมูล */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      {/* FIX: รวมทุกอย่างไว้ใน Grid container เดียวเพื่อแก้ปัญหาการซ้อนทับ */}
+      <Grid container spacing={3}>
+        {/* ส่วนที่ 1: การ์ดสรุปข้อมูล */}
         <Grid item xs={12} sm={6} md={3}><StatCard title="Total Revenue" value={keyMetrics.totalRevenue} icon={<MonetizationOn />} bgColor="success.light" color="success.main" /></Grid>
         <Grid item xs={12} sm={6} md={3}><StatCard title="Total Sales" value={keyMetrics.totalSales} icon={<Receipt />} bgColor="info.light" color="info.main" /></Grid>
         <Grid item xs={12} sm={6} md={3}><StatCard title="Total Customers" value={keyMetrics.totalCustomers} icon={<People />} bgColor="secondary.light" color="secondary.main" /></Grid>
         <Grid item xs={12} sm={6} md={3}><StatCard title="Total Products" value={keyMetrics.totalProducts} icon={<Inventory />} bgColor="warning.light" color="warning.main" /></Grid>
-      </Grid>
 
-      <Grid container spacing={3}>
         {/* ส่วนที่ 2: กราฟแนวโน้มยอดขาย */}
         <Grid item xs={12} lg={8}>
           <Paper sx={{ p: 2, height: 350, borderRadius: 2 }}>
