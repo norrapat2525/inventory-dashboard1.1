@@ -10,12 +10,13 @@ function App() {
   const fetchInitialData = useInventoryStore((state) => state.fetchInitialData);
   const isLoading = useInventoryStore((state) => state.isLoading);
 
-  // FIX: แก้ไข dependency array ให้เป็น []
-  // เพื่อให้ useEffect ทำงานแค่ครั้งเดียวตอนที่คอมโพเนนต์โหลดขึ้นมาครั้งแรกเท่านั้น
+  // useEffect นี้จะทำงานแค่ครั้งเดียวตอนที่แอปเริ่มทำงาน
+  // เพื่อสั่งให้ดึงข้อมูลทั้งหมดจาก Firebase
   useEffect(() => {
     fetchInitialData();
-  }, []); // <--- แก้ไขตรงนี้
+  }, []);
 
+  // ถ้ากำลังโหลดข้อมูล ให้แสดงหน้า Loading
   if (isLoading) {
     return (
       <Box 
@@ -27,11 +28,12 @@ function App() {
         }}
       >
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading Data...</Typography>
+        <Typography sx={{ ml: 2 }}>Loading Data from Cloud...</Typography>
       </Box>
     );
   }
 
+  // เมื่อโหลดเสร็จแล้ว จึงแสดงแอปพลิเคชันทั้งหมด
   return (
     <Router>
       <DashboardLayout>
