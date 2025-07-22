@@ -15,34 +15,42 @@ const useInventoryStore = create((set, get) => ({
   customers: [],
   sales: [],
   notifications: [],
-  isLoading: true, // เริ่มต้นด้วยสถานะกำลังโหลด
+  isLoading: true,
 
   //================== ACTIONS ==================
   fetchInitialData: async () => {
-    // ตั้งค่า isLoading เป็น true ก่อนเริ่มดึงข้อมูล
+    console.log("🚀 [Store] Starting fetchInitialData...");
     if (!get().isLoading) set({ isLoading: true });
     try {
+      console.log("... 1/3 Fetching products...");
       const productsSnapshot = await getDocs(collection(db, "products"));
       const productsData = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`✅ [Store] Found ${productsData.length} products.`);
       
+      console.log("... 2/3 Fetching customers...");
       const customersSnapshot = await getDocs(collection(db, "customers"));
       const customersData = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`✅ [Store] Found ${customersData.length} customers.`);
 
+      console.log("... 3/3 Fetching sales...");
       const salesSnapshot = await getDocs(collection(db, "sales"));
       const salesData = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`✅ [Store] Found ${salesData.length} sales.`);
 
       set({ 
         products: productsData, 
         customers: customersData, 
         sales: salesData, 
-        isLoading: false // ดึงข้อมูลเสร็จแล้ว
+        isLoading: false 
       });
+      console.log("🎉 [Store] All data fetched and state updated successfully!");
     } catch (error) {
-      console.error("Error fetching initial data:", error);
-      set({ isLoading: false }); // หากมีข้อผิดพลาด ให้หยุดโหลด
+      console.error("🔥 [Store] CRITICAL ERROR while fetching initial data:", error);
+      set({ isLoading: false });
     }
   },
 
+  // --- Các action khác không thay đổi ---
   addProduct: async (productData) => {
     try {
       const docRef = await addDoc(collection(db, "products"), productData);
@@ -79,7 +87,6 @@ const useInventoryStore = create((set, get) => ({
       get().addNotification({ type: 'error', message: 'Failed to delete product.' });
     }
   },
-
   addCustomer: async (customerData) => {
     try {
       const docRef = await addDoc(collection(db, "customers"), customerData);
@@ -91,7 +98,6 @@ const useInventoryStore = create((set, get) => ({
       get().addNotification({ type: 'error', message: 'Failed to add customer.' });
     }
   },
-  
   updateCustomer: async (id, updatedData) => {
     const customerDoc = doc(db, "customers", id);
     try {
@@ -117,7 +123,6 @@ const useInventoryStore = create((set, get) => ({
       get().addNotification({ type: 'error', message: 'Failed to delete customer.' });
     }
   },
-  
   addNotification: (notification) => set((state) => ({ notifications: [...state.notifications, { ...notification, id: Date.now() }] })),
   removeNotification: (id) => set((state) => ({ notifications: state.notifications.filter(n => n.id !== id) })),
 }));
