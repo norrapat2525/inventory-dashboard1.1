@@ -11,8 +11,8 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
 } from 'recharts';
 import { Paper, Typography, Grid, Box, Card, CardContent, Avatar } from '@mui/material';
 import { MonetizationOn, Receipt, People, Inventory } from '@mui/icons-material';
@@ -20,16 +20,32 @@ import useInventoryStore from '../stores/inventoryStore';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
-// การ์ดสรุปข้อมูล
-const StatCard = ({ title, value, icon, bgColor }) => (
-  <Card elevation={3} sx={{ display: 'flex', alignItems: 'center', p: 2, borderRadius: 2 }}>
-    <Avatar sx={{ bgcolor: bgColor, width: 56, height: 56, mr: 2 }}>{icon}</Avatar>
+// [UI Improvement] การ์ดสรุปข้อมูลที่ออกแบบใหม่
+const StatCard = ({ title, value, icon, bgColor, color }) => (
+  <Card elevation={3} sx={{ display: 'flex', alignItems: 'center', p: 2.5, borderRadius: 2, height: '100%' }}>
+    <Avatar sx={{ bgcolor: bgColor, color: color, width: 56, height: 56, mr: 2 }}>{icon}</Avatar>
     <Box>
       <Typography color="text.secondary">{title}</Typography>
       <Typography variant="h5" fontWeight="bold">{value}</Typography>
     </Box>
   </Card>
 );
+
+// [UI Improvement] Custom Tooltip สำหรับกราฟ
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <Paper elevation={3} sx={{ p: 1.5, borderRadius: 1 }}>
+        <Typography variant="caption" display="block" gutterBottom>{`Date: ${label}`}</Typography>
+        <Typography variant="body2" fontWeight="bold" sx={{ color: payload[0].stroke }}>
+          {`Amount: $${payload[0].value.toLocaleString()}`}
+        </Typography>
+      </Paper>
+    );
+  }
+  return null;
+};
+
 
 const ReportsPage = () => {
   const products = useInventoryStore((state) => state.products);
@@ -93,10 +109,10 @@ const ReportsPage = () => {
       
       {/* ส่วนที่ 1: การ์ดสรุปข้อมูล */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Revenue" value={keyMetrics.totalRevenue} icon={<MonetizationOn />} bgColor="success.light" /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Sales" value={keyMetrics.totalSales} icon={<Receipt />} bgColor="info.light" /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Customers" value={keyMetrics.totalCustomers} icon={<People />} bgColor="secondary.light" /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Products" value={keyMetrics.totalProducts} icon={<Inventory />} bgColor="warning.light" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Revenue" value={keyMetrics.totalRevenue} icon={<MonetizationOn />} bgColor="success.light" color="success.main" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Sales" value={keyMetrics.totalSales} icon={<Receipt />} bgColor="info.light" color="info.main" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Customers" value={keyMetrics.totalCustomers} icon={<People />} bgColor="secondary.light" color="secondary.main" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Products" value={keyMetrics.totalProducts} icon={<Inventory />} bgColor="warning.light" color="warning.main" /></Grid>
       </Grid>
 
       <Grid container spacing={3}>
@@ -105,14 +121,20 @@ const ReportsPage = () => {
           <Paper sx={{ p: 2, height: 350, borderRadius: 2 }}>
             <Typography variant="h6" gutterBottom>Sales Trend</Typography>
             <ResponsiveContainer>
-              <LineChart data={salesTrendData}>
+              <AreaChart data={salesTrendData}>
+                <defs>
+                  <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend />
-                <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={2} />
-              </LineChart>
+                <Area type="monotone" dataKey="amount" stroke="#8884d8" fillOpacity={1} fill="url(#colorAmount)" />
+              </AreaChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
@@ -123,7 +145,7 @@ const ReportsPage = () => {
             <Typography variant="h6" gutterBottom>Payment Status</Typography>
             <ResponsiveContainer>
               <PieChart>
-                <Pie data={paymentStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+                <Pie data={paymentStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} fill="#8884d8" paddingAngle={5} label>
                   {paymentStatusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.name === 'Paid' ? '#00C49F' : '#FF8042'} />
                   ))}
@@ -140,13 +162,13 @@ const ReportsPage = () => {
            <Paper sx={{ p: 2, height: 400, borderRadius: 2 }}>
             <Typography variant="h6" gutterBottom>Top 5 Selling Products (by Revenue)</Typography>
             <ResponsiveContainer>
-                <BarChart data={topProductsData} layout="vertical">
+                <BarChart data={topProductsData} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" width={150} />
                     <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
                     <Legend />
-                    <Bar dataKey="total" fill="#82ca9d" name="Total Revenue" />
+                    <Bar dataKey="total" fill="#82ca9d" name="Total Revenue" radius={[0, 10, 10, 0]} />
                 </BarChart>
             </ResponsiveContainer>
            </Paper>
