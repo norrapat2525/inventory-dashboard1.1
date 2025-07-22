@@ -3,11 +3,116 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    
+    <!-- ✅ Meta Viewport สำหรับมือถือ (สำคัญมาก!) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- ✅ เพิ่ม Meta Tags สำหรับ Mobile -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#1976d2" />
+    <meta name="description" content="Inventory Management Dashboard" />
+    
+    <title>Inventory Dashboard</title>
+    
+    <!-- ✅ CSS สำหรับป้องกันปัญหา Mobile -->
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow-x: hidden; /* ป้องกันเลื่อนซ้าย-ขวา */
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100vh;
+        overflow-x: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      #root {
+        width: 100%;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      
+      /* ป้องกัน zoom บนมือถือ (iOS Safari) */
+      input, select, textarea, button {
+        font-size: 16px !important; /* ป้องกัน iOS zoom */
+      }
+      
+      /* ซ่อน scrollbar แนวนอน */
+      body::-webkit-scrollbar-x {
+        display: none;
+      }
+      
+      /* Touch เป็นมิตรกับ Mobile */
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      /* ป้องกัน text selection ที่ไม่จำเป็น */
+      .no-select {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+      
+      /* Loading state */
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-size: 1.2rem;
+        color: #666;
+      }
+      
+      /* Safe Area สำหรับ iPhone X+ */
+      @supports (padding: max(0px)) {
+        body {
+          padding-left: max(0px, env(safe-area-inset-left));
+          padding-right: max(0px, env(safe-area-inset-right));
+        }
+      }
+      
+      /* Responsive breakpoints */
+      @media (max-width: 768px) {
+        html {
+          font-size: 14px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        html {
+          font-size: 13px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Loading state จนกว่า React จะโหลดเสร็จ -->
+      <div class="loading">
+        Loading Inventory Dashboard...
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
