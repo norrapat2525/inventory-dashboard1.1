@@ -1,22 +1,21 @@
-import React, { useEffect } from 'react'; // 1. Import useEffect
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import AppRoutes from './routes/AppRoutes';
 import DashboardLayout from './components/layout/DashboardLayout';
 import NotificationHandler from './components/common/NotificationHandler';
-import useInventoryStore from './stores/inventoryStore'; // 2. Import Store เข้ามา
+import useInventoryStore from './stores/inventoryStore';
 
 function App() {
-  // 3. ดึงฟังก์ชันสำหรับดึงข้อมูลและสถานะ isLoading มาจาก Store
   const fetchInitialData = useInventoryStore((state) => state.fetchInitialData);
   const isLoading = useInventoryStore((state) => state.isLoading);
 
-  // 4. ใช้ useEffect เพื่อสั่งให้ดึงข้อมูลแค่ครั้งเดียวเมื่อแอปเริ่มทำงาน
+  // FIX: แก้ไข dependency array ให้เป็น []
+  // เพื่อให้ useEffect ทำงานแค่ครั้งเดียวตอนที่คอมโพเนนต์โหลดขึ้นมาครั้งแรกเท่านั้น
   useEffect(() => {
     fetchInitialData();
-  }, [fetchInitialData]);
+  }, []); // <--- แก้ไขตรงนี้
 
-  // 5. ถ้ากำลังโหลดข้อมูล ให้แสดงหน้า Loading
   if (isLoading) {
     return (
       <Box 
@@ -33,7 +32,6 @@ function App() {
     );
   }
 
-  // 6. เมื่อโหลดเสร็จแล้ว จึงแสดงแอปพลิเคชันทั้งหมด
   return (
     <Router>
       <DashboardLayout>
