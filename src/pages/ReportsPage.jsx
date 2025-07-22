@@ -11,99 +11,145 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  LineChart,
+  Line,
 } from 'recharts';
-import { Paper, Typography, Grid, Box } from '@mui/material';
+import { Paper, Typography, Grid, Box, Card, CardContent, Avatar } from '@mui/material';
+import { MonetizationOn, Receipt, People, Inventory } from '@mui/icons-material';
 import useInventoryStore from '../stores/inventoryStore';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
+// การ์ดสรุปข้อมูล
+const StatCard = ({ title, value, icon, bgColor }) => (
+  <Card elevation={3} sx={{ display: 'flex', alignItems: 'center', p: 2, borderRadius: 2 }}>
+    <Avatar sx={{ bgcolor: bgColor, width: 56, height: 56, mr: 2 }}>{icon}</Avatar>
+    <Box>
+      <Typography color="text.secondary">{title}</Typography>
+      <Typography variant="h5" fontWeight="bold">{value}</Typography>
+    </Box>
+  </Card>
+);
+
 const ReportsPage = () => {
   const products = useInventoryStore((state) => state.products);
-  const transactions = useInventoryStore((state) => state.transactions);
+  const customers = useInventoryStore((state) => state.customers);
+  const sales = useInventoryStore((state) => state.sales);
 
-  // คำนวณข้อมูลสำหรับกราฟวงกลม: สัดส่วนมูลค่าสินค้าตามหมวดหมู่
-  const categoryValueData = useMemo(() => {
-    const categoryValues = products.reduce((acc, product) => {
-      const value = (product.price || 0) * (product.quantity || 0);
-      acc[product.category] = (acc[product.category] || 0) + value;
+  // --- 1. คำนวณข้อมูลสำหรับการ์ดสรุป ---
+  const keyMetrics = useMemo(() => {
+    const totalRevenue = sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+    return {
+      totalRevenue: `$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      totalSales: sales.length,
+      totalCustomers: customers.length,
+      totalProducts: products.length,
+    };
+  }, [sales, customers, products]);
+
+  // --- 2. คำนวณข้อมูลสำหรับกราฟแนวโน้มยอดขาย ---
+  const salesTrendData = useMemo(() => {
+    const dailySales = sales.reduce((acc, sale) => {
+      const date = sale.date;
+      acc[date] = (acc[date] || 0) + sale.totalAmount;
+      return acc;
+    }, {});
+    return Object.entries(dailySales)
+      .map(([date, amount]) => ({ date, amount }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [sales]);
+
+  // --- 3. คำนวณข้อมูลสำหรับ 5 อันดับสินค้าขายดี ---
+  const topProductsData = useMemo(() => {
+    const productSales = sales.flatMap(sale => sale.items).reduce((acc, item) => {
+      acc[item.productId] = (acc[item.productId] || 0) + (item.price * item.quantity);
       return acc;
     }, {});
 
-    return Object.entries(categoryValues).map(([name, value]) => ({ name, value }));
-  }, [products]);
+    const productMap = new Map(products.map(p => [p.id, p.name]));
 
-  // คำนวณข้อมูลสำหรับกราฟแท่ง: จำนวนธุรกรรมรายเดือน
-  const monthlyTransactionData = useMemo(() => {
-    const monthlyData = transactions.reduce((acc, transaction) => {
-      const month = new Date(transaction.date).toLocaleString('default', { month: 'short' });
-      if (!acc[month]) {
-        acc[month] = { month, stockIn: 0, stockOut: 0 };
-      }
-      if (transaction.type === 'in') {
-        acc[month].stockIn += transaction.quantity;
-      } else {
-        acc[month].stockOut += transaction.quantity;
-      }
-      return acc;
-    }, {});
+    return Object.entries(productSales)
+      .map(([productId, total]) => ({ name: productMap.get(Number(productId)) || 'Unknown', total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+  }, [sales, products]);
+  
+  // --- 4. คำนวณข้อมูลสำหรับสถานะการชำระเงิน ---
+    const paymentStatusData = useMemo(() => {
+        const statusCounts = sales.reduce((acc, sale) => {
+            const status = sale.status || 'Unknown';
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+        }, {});
+        return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+    }, [sales]);
 
-    return Object.values(monthlyData).reverse(); // เรียงเดือนล่าสุดก่อน
-  }, [transactions]);
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Inventory Reports
+      <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 3 }}>
+        Sales & Inventory Reports
       </Typography>
+      
+      {/* ส่วนที่ 1: การ์ดสรุปข้อมูล */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Revenue" value={keyMetrics.totalRevenue} icon={<MonetizationOn />} bgColor="success.light" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Sales" value={keyMetrics.totalSales} icon={<Receipt />} bgColor="info.light" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Customers" value={keyMetrics.totalCustomers} icon={<People />} bgColor="secondary.light" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Products" value={keyMetrics.totalProducts} icon={<Inventory />} bgColor="warning.light" /></Grid>
+      </Grid>
+
       <Grid container spacing={3}>
-        {/* กราฟวงกลม */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: 400, display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="h6" gutterBottom>
-              Inventory Value by Category
-            </Typography>
+        {/* ส่วนที่ 2: กราฟแนวโน้มยอดขาย */}
+        <Grid item xs={12} lg={8}>
+          <Paper sx={{ p: 2, height: 350, borderRadius: 2 }}>
+            <Typography variant="h6" gutterBottom>Sales Trend</Typography>
+            <ResponsiveContainer>
+              <LineChart data={salesTrendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                <Legend />
+                <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* ส่วนที่ 3: กราฟสถานะการชำระเงิน */}
+        <Grid item xs={12} lg={4}>
+          <Paper sx={{ p: 2, height: 350, borderRadius: 2 }}>
+            <Typography variant="h6" gutterBottom>Payment Status</Typography>
             <ResponsiveContainer>
               <PieChart>
-                <Pie
-                  data={categoryValueData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={120}
-                  fill="#8884d8"
-                  dataKey="value"
-                  nameKey="name"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {categoryValueData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Pie data={paymentStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+                  {paymentStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.name === 'Paid' ? '#00C49F' : '#FF8042'} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                <Tooltip />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
 
-        {/* กราฟแท่ง */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: 400, display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="h6" gutterBottom>
-              Monthly Transaction Volume
-            </Typography>
+        {/* ส่วนที่ 4: กราฟสินค้าขายดี */}
+        <Grid item xs={12}>
+           <Paper sx={{ p: 2, height: 400, borderRadius: 2 }}>
+            <Typography variant="h6" gutterBottom>Top 5 Selling Products (by Revenue)</Typography>
             <ResponsiveContainer>
-              <BarChart data={monthlyTransactionData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="stockIn" fill="#82ca9d" name="Stock In" />
-                <Bar dataKey="stockOut" fill="#ff6b6b" name="Stock Out" />
-              </BarChart>
+                <BarChart data={topProductsData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={150} />
+                    <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                    <Legend />
+                    <Bar dataKey="total" fill="#82ca9d" name="Total Revenue" />
+                </BarChart>
             </ResponsiveContainer>
-          </Paper>
+           </Paper>
         </Grid>
       </Grid>
     </Box>
