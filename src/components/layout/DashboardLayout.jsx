@@ -106,10 +106,10 @@ const DashboardLayout = ({ children }) => {
         sx={{
           flexGrow: 1,
           p: { xs: 2, sm: 3 }, // ปรับ padding ให้เหมาะกับมือถือ
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: { xs: '100%', sm: `calc(100% - ${drawerWidth}px)` },
         }}
       >
-        <Toolbar /> {/* เพิ่ม Toolbar فاضيเพื่อดันเนื้อหาลงมาไม่ให้ถูก Header บัง */}
+        <Toolbar /> {/* เพิ่ม Toolbar ว่างเพื่อดันเนื้อหาลงมาไม่ให้ถูก Header บัง */}
         {children}
       </Box>
     </Box>
