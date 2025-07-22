@@ -1,188 +1,108 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useReactTable, getCoreRowModel, flexRender, getFilteredRowModel } from '@tanstack/react-table';
 import {
-  Paper,
-  Typography,
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  TextField,
-  CircularProgress,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+  Typography, Box, Button, TextField, Chip
 } from '@mui/material';
 import useInventoryStore from '../stores/inventoryStore';
 
-const TransactionsPage = () => {
-  // ดึงข้อมูลการขายจาก Store
-  const sales = useInventoryStore((state) => state.sales || []);
-  const isClient = useInventoryStore((state) => state._isClient);
-  const isHydrated = useInventoryStore((state) => state._isHydrated);
+// คอมโพเนนต์สำหรับแสดงสถานะ
+const StatusChip = ({ status }) => {
+  let color = 'default';
+  if (status === 'Paid') color = 'success';
+  if (status === 'Unpaid') color = 'warning';
   
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  return <Chip label={status} color={color} size="small" />;
+};
 
-  useEffect(() => {
-    if (isClient && isHydrated) {
-      setIsLoading(false);
-    }
-  }, [isClient, isHydrated]);
+const TransactionsPage = () => {
+  // ดึงข้อมูล sales และ customers มาจาก store
+  const sales = useInventoryStore((state) => state.sales);
+  const customers = useInventoryStore((state) => state.customers);
+  
+  const [globalFilter, setGlobalFilter] = useState('');
 
-  // กรองข้อมูลตามการค้นหา
-  const filteredSales = sales.filter(sale =>
-    sale.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sale.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sale.notes?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // สร้าง Map เพื่อให้ค้นหาชื่อลูกค้าได้เร็วขึ้น
+  const customerMap = useMemo(() => {
+    return new Map(customers.map(customer => [customer.id, customer.name]));
+  }, [customers]);
 
-  // แปลงสถานะเป็นสี
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'paid': return 'success';
-      case 'pending': return 'warning';
-      case 'partial': return 'info';
-      default: return 'success';
-    }
-  };
+  const columns = useMemo(() => [
+    { accessorKey: 'id', header: 'Sale ID' },
+    { accessorKey: 'date', header: 'Date' },
+    { 
+      accessorKey: 'customerId', 
+      header: 'Customer',
+      // แปลง customerId ให้เป็นชื่อลูกค้า
+      cell: info => customerMap.get(info.getValue()) || 'Unknown Customer'
+    },
+    { 
+      accessorKey: 'totalAmount', 
+      header: 'Total Amount', 
+      cell: info => `$${Number(info.getValue() || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+    },
+    { 
+      accessorKey: 'status', 
+      header: 'Status',
+      cell: info => <StatusChip status={info.getValue()} />
+    },
+  ], [customerMap]);
+  
+  const tableData = useMemo(() => sales || [], [sales]);
 
-  // แปลงสถานะเป็นข้อความ
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'paid': return 'Paid';
-      case 'pending': return 'Pending';
-      case 'partial': return 'Partial';
-      default: return 'Paid';
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '60vh',
-        flexDirection: 'column' 
-      }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Loading transactions...</Typography>
-      </Box>
-    );
-  }
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    state: { globalFilter },
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
 
   return (
     <Box>
-      {/* Header */}
-      <Typography variant="h4" gutterBottom>
-        Transaction History ({sales.length} transactions)
-      </Typography>
-
-      {/* Search */}
-      <Box sx={{ mb: 3 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h4" gutterBottom>Sales History</Typography>
+        {/* ในอนาคต ปุ่มนี้จะใช้เปิดฟอร์มบันทึกการขาย */}
+        <Button variant="contained" color="primary">
+          Create New Sale
+        </Button>
+      </Box>
+      <Box mb={2}>
         <TextField
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by customer name, order ID, or notes..."
+          value={globalFilter ?? ''}
+          onChange={e => setGlobalFilter(e.target.value)}
+          placeholder="Search all columns..."
           variant="outlined"
           size="small"
           fullWidth
         />
       </Box>
-
-      {/* Table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Customer</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Products</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Type</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Quantity</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Amount</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredSales.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  <Box sx={{ py: 4 }}>
-                    <Typography variant="h6" color="textSecondary" gutterBottom>
-                      {searchTerm ? 'No transactions found matching your search.' : 'No transactions yet.'}
-                    </Typography>
-                    {!searchTerm && (
-                      <Typography variant="body2" color="textSecondary">
-                        Create your first sale order from the Sales page to see transactions here.
-                      </Typography>
-                    )}
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ) : (
-              // แปลงข้อมูล sales เป็นรายการ transactions แยกตามสินค้า
-              filteredSales.flatMap((sale) => 
-                sale.items?.map((item, itemIndex) => ({
-                  id: `${sale.id}-${itemIndex}`,
-                  saleId: sale.id,
-                  date: sale.date,
-                  customerName: sale.customerName,
-                  productName: item.productName,
-                  quantity: item.quantity,
-                  amount: item.price * item.quantity,
-                  paymentStatus: sale.paymentStatus
-                })) || []
-              ).map((transaction) => (
-                <TableRow key={transaction.id} hover>
-                  <TableCell>#{transaction.saleId}</TableCell>
-                  <TableCell>{transaction.date}</TableCell>
-                  <TableCell>{transaction.customerName || 'Walk-in'}</TableCell>
-                  <TableCell>{transaction.productName}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label="Sale" 
-                      color="success" 
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{transaction.quantity}</TableCell>
-                  <TableCell>${transaction.amount.toFixed(2)}</TableCell>
+      
+      <Paper sx={{ width: '100%', overflowX: 'auto' }}>
+        <TableContainer>
+          <Table sx={{ minWidth: 650 }} aria-label="sales history table">
+            <TableHead>
+              {table.getHeaderGroups().map(headerGroup => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <TableCell key={header.id} sx={{ fontWeight: 'bold' }}>{flexRender(header.column.columnDef.header, header.getContext())}</TableCell>
+                  ))}
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* Summary */}
-      {sales.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Summary
-            </Typography>
-            <Box display="flex" justifyContent="space-between">
-              <Typography>
-                Total Orders: <strong>{sales.length}</strong>
-              </Typography>
-              <Typography>
-                Total Items Sold: <strong>
-                  {sales.reduce((sum, sale) => 
-                    sum + (sale.items?.reduce((itemSum, item) => itemSum + item.quantity, 0) || 0), 0
-                  )}
-                </strong>
-              </Typography>
-              <Typography>
-                Total Revenue: <strong>
-                  ${sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0).toLocaleString()}
-                </strong>
-              </Typography>
-            </Box>
-          </Paper>
-        </Box>
-      )}
+              ))}
+            </TableHead>
+            <TableBody>
+              {table.getRowModel().rows.map(row => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
     </Box>
   );
 };
