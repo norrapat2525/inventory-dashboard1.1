@@ -1,68 +1,218 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+/* Global Mobile CSS Fixes for Inventory Dashboard */
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Reset และ Base Styles */
+* {
+  box-sizing: border-box;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+html {
+  overflow-x: hidden;
+  width: 100%;
+  height: 100%;
+  font-size: 16px;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  padding: 0;
+  overflow-x: hidden;
+  width: 100%;
   min-height: 100vh;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+#root {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/* ป้องกัน iOS Zoom เมื่อ focus input */
+input, select, textarea, button {
+  font-size: 16px !important;
+  max-width: 100%;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* Table Responsive */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.MuiTable-root {
+  min-width: 600px;
+}
+
+/* Card และ Paper Responsive */
+.MuiCard-root, .MuiPaper-root {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Grid Container */
+.MuiGrid-container {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+/* Typography Responsive */
+@media (max-width: 768px) {
+  .MuiTypography-h4 {
+    font-size: 1.5rem !important;
   }
-  a:hover {
-    color: #747bff;
+
+  .MuiTypography-h5 {
+    font-size: 1.25rem !important;
   }
-  button {
-    background-color: #f9f9f9;
+
+  .MuiTypography-h6 {
+    font-size: 1.1rem !important;
   }
+  
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 13px;
+  }
+}
+
+/* Button Responsive */
+.MuiButton-root {
+  min-width: auto !important;
+  white-space: nowrap !important;
+}
+
+/* TextField Responsive */
+.MuiTextField-root {
+  max-width: 100% !important;
+}
+
+/* Dialog เต็มหน้าจอบนมือถือ */
+@media (max-width: 600px) {
+  .MuiDialog-paper {
+    margin: 8px !important;
+    width: calc(100% - 16px) !important;
+    max-width: none !important;
+    max-height: calc(100% - 16px) !important;
+  }
+  
+  .MuiDialog-paperFullWidth {
+    width: calc(100% - 16px) !important;
+  }
+}
+
+/* ซ่อน Scrollbar แนวนอน */
+::-webkit-scrollbar-track:horizontal {
+  display: none;
+}
+
+/* Touch Target Size */
+@media (max-width: 768px) {
+  .MuiIconButton-root {
+    padding: 12px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+  
+  .MuiListItemButton-root {
+    min-height: 48px !important;
+    padding: 12px 16px !important;
+  }
+  
+  .MuiButton-root {
+    min-height: 44px !important;
+    padding: 8px 16px !important;
+  }
+  
+  .MuiTab-root {
+    min-height: 48px !important;
+  }
+}
+
+/* Prevent text selection on touch UI elements */
+.MuiAppBar-root *,
+.MuiToolbar-root *,
+.MuiDrawer-root * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Safe Area สำหรับ iPhone X+ */
+@supports (padding: max(0px)) {
+  .MuiAppBar-root .MuiToolbar-root {
+    padding-left: max(16px, env(safe-area-inset-left)) !important;
+    padding-right: max(16px, env(safe-area-inset-right)) !important;
+  }
+}
+
+/* Custom scrollbar สำหรับ webkit browsers */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Form elements สำหรับ mobile */
+@media (max-width: 768px) {
+  .MuiFormControl-root {
+    margin-bottom: 16px !important;
+  }
+  
+  .MuiInputBase-input {
+    padding: 14px !important;
+  }
+  
+  .MuiSelect-select {
+    padding: 14px !important;
+  }
+}
+
+/* Loading states */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  flex-direction: column;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Remove tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
