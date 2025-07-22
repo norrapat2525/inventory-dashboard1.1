@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-// 1. Import เครื่องมือสำหรับติดต่อกับ Firestore
 import { db } from '../firebaseConfig';
 import { 
   collection, 
@@ -12,18 +11,16 @@ import {
 
 const useInventoryStore = create((set, get) => ({
   //================== STATE ==================
-  // 2. เปลี่ยนข้อมูลเริ่มต้นให้เป็นค่าว่างทั้งหมด เพราะเราจะดึงมาจาก Firebase
   products: [],
   customers: [],
   sales: [],
   notifications: [],
-  isLoading: true, // เพิ่ม State สำหรับบอกสถานะกำลังโหลดข้อมูล
+  isLoading: true, // เริ่มต้นด้วยสถานะกำลังโหลด
 
   //================== ACTIONS ==================
-
-  // --- 3. สร้าง Action ใหม่สำหรับดึงข้อมูลเริ่มต้นจาก Firebase ---
   fetchInitialData: async () => {
-    set({ isLoading: true });
+    // ตั้งค่า isLoading เป็น true ก่อนเริ่มดึงข้อมูล
+    if (!get().isLoading) set({ isLoading: true });
     try {
       const productsSnapshot = await getDocs(collection(db, "products"));
       const productsData = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -38,15 +35,14 @@ const useInventoryStore = create((set, get) => ({
         products: productsData, 
         customers: customersData, 
         sales: salesData, 
-        isLoading: false 
+        isLoading: false // ดึงข้อมูลเสร็จแล้ว
       });
     } catch (error) {
       console.error("Error fetching initial data:", error);
-      set({ isLoading: false });
+      set({ isLoading: false }); // หากมีข้อผิดพลาด ให้หยุดโหลด
     }
   },
 
-  // --- 4. แก้ไข Actions ทั้งหมดให้ทำงานกับ Firebase ---
   addProduct: async (productData) => {
     try {
       const docRef = await addDoc(collection(db, "products"), productData);
@@ -65,7 +61,7 @@ const useInventoryStore = create((set, get) => ({
       set((state) => ({
         products: state.products.map(p => p.id === id ? { ...p, ...updatedData } : p)
       }));
-      get().addNotification({ type: 'info', message: `Product "${updatedData.name}" updated.` });
+      get().addNotification({ type: 'info', message: `Product updated.` });
     } catch (error) {
       console.error("Error updating product:", error);
       get().addNotification({ type: 'error', message: 'Failed to update product.' });
@@ -103,7 +99,7 @@ const useInventoryStore = create((set, get) => ({
       set((state) => ({
         customers: state.customers.map(c => c.id === id ? { ...c, ...updatedData } : c)
       }));
-      get().addNotification({ type: 'info', message: `Customer "${updatedData.name}" updated.` });
+      get().addNotification({ type: 'info', message: `Customer updated.` });
     } catch (error) {
       console.error("Error updating customer:", error);
       get().addNotification({ type: 'error', message: 'Failed to update customer.' });
@@ -121,27 +117,7 @@ const useInventoryStore = create((set, get) => ({
       get().addNotification({ type: 'error', message: 'Failed to delete customer.' });
     }
   },
-  createSaleOrder: async (saleData) => {
-    try {
-      const docRef = await addDoc(collection(db, "sales"), saleData);
-      const newSale = { id: docRef.id, ...saleData };
-      set((state) => ({ sales: [...state.sales, newSale] }));
-
-      for (const item of saleData.items) {
-        const product = get().products.find(p => p.id === item.productId);
-        if (product) {
-          const newQuantity = product.quantity - item.quantity;
-          await get().updateProduct(item.productId, { quantity: newQuantity });
-        }
-      }
-      get().addNotification({ type: 'success', message: `Sale order created successfully.` });
-    } catch (error) {
-      console.error("Error creating sale order:", error);
-      get().addNotification({ type: 'error', message: 'Failed to create sale order.' });
-    }
-  },
   
-  // --- Notification Actions (คงเดิม) ---
   addNotification: (notification) => set((state) => ({ notifications: [...state.notifications, { ...notification, id: Date.now() }] })),
   removeNotification: (id) => set((state) => ({ notifications: state.notifications.filter(n => n.id !== id) })),
 }));
