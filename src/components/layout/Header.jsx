@@ -1,18 +1,32 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Box } from '@mui/material';
-import LowStockAlert from '../dashboard/LowStockAlert'; // 1. Import คอมโพเนนต์ใหม่
+import { AppBar, Toolbar, IconButton, Typography, Box } from '@mui/material';
+import { Menu as MenuIcon } from '@mui/icons-material';
 
-const Header = () => {
+const Header = ({ onDrawerToggle }) => {
   return (
-    <AppBar position="static" sx={{ backgroundColor: '#ffffff', color: '#000000' }} elevation={1}>
+    <AppBar
+      position="fixed"
+      sx={{
+        width: { sm: `calc(100% - 240px)` },
+        ml: { sm: `240px` },
+        bgcolor: 'background.paper',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+        color: 'text.primary'
+      }}
+    >
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+        <IconButton
+          color="inherit"
+          aria-label="open drawer"
+          edge="start"
+          onClick={onDrawerToggle}
+          sx={{ mr: 2, display: { sm: 'none' } }} // แสดงปุ่มนี้เฉพาะบนจอมือถือ
+        >
+          <MenuIcon />
+        </IconButton>
+        <Typography variant="h6" noWrap component="div">
           Inventory Dashboard
         </Typography>
-        <Box>
-          {/* 2. นำคอมโพเนนต์แจ้งเตือนมาใช้งาน */}
-          <LowStockAlert />
-        </Box>
       </Toolbar>
     </AppBar>
   );
