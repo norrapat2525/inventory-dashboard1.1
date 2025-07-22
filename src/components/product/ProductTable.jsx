@@ -101,7 +101,7 @@ const ProductTable = () => {
       {/* FIX: ทำให้ตารางสามารถ scroll แนวนอนได้บนมือถือ */}
       <Paper sx={{ width: '100%', overflowX: 'auto' }}>
         <TableContainer>
-          <Table sx={{ minWidth: 650 }} aria-label="simple table">
+          <Table sx={{ minWidth: 650 }} aria-label="products table">
             <TableHead>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id}>

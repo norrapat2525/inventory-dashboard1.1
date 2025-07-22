@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider, Drawer, CssBaseline } from '@mui/material';
+import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider, Drawer, AppBar, Toolbar, IconButton, CssBaseline } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
-import { Dashboard, Inventory, Receipt, Assessment, Group } from '@mui/icons-material';
-import Header from './Header'; // Import Header ใหม่
+import { Dashboard, Inventory, Receipt, Assessment, Group, Menu as MenuIcon } from '@mui/icons-material';
 
 const drawerWidth = 240;
 
@@ -24,9 +23,9 @@ const DashboardLayout = ({ children }) => {
 
   const drawerContent = (
     <div>
-      <Box sx={{ p: 2, textAlign: 'center' }}>
+      <Toolbar sx={{ justifyContent: 'center' }}>
         <Typography variant="h6" component="h1">Inventory</Typography>
-      </Box>
+      </Toolbar>
       <Divider />
       <List>
         {menuItems.map((item) => (
@@ -35,7 +34,7 @@ const DashboardLayout = ({ children }) => {
               component={Link}
               to={item.path}
               selected={location.pathname === item.path}
-              onClick={() => setMobileOpen(false)} // ปิดเมนูเมื่อคลิกบนมือถือ
+              onClick={mobileOpen ? handleDrawerToggle : null} // ปิดเมนูเมื่อคลิกบนมือถือ
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
@@ -49,7 +48,28 @@ const DashboardLayout = ({ children }) => {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <Header onDrawerToggle={handleDrawerToggle} />
+      <AppBar
+        position="fixed"
+        sx={{
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          ml: { sm: `${drawerWidth}px` },
+        }}
+      >
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { sm: 'none' } }} // แสดงปุ่มนี้เฉพาะบนจอมือถือ
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" noWrap component="div">
+            {menuItems.find(item => item.path === location.pathname)?.text || 'Dashboard'}
+          </Typography>
+        </Toolbar>
+      </AppBar>
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
@@ -85,13 +105,11 @@ const DashboardLayout = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 2, sm: 3 }, // ปรับ padding ให้เหมาะกับมือถือ
           width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: '64px', // เพิ่มระยะห่างจาก Header
-          bgcolor: '#f4f6f8',
-          minHeight: 'calc(100vh - 64px)'
         }}
       >
+        <Toolbar /> {/* เพิ่ม Toolbar فاضيเพื่อดันเนื้อหาลงมาไม่ให้ถูก Header บัง */}
         {children}
       </Box>
     </Box>

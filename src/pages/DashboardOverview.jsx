@@ -119,7 +119,7 @@ const DashboardOverview = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 4 }}>
+      <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 3 }}>
         Dashboard Overview
       </Typography>
       {/* FIX: ปรับปรุง Grid ให้รองรับทุกขนาดหน้าจอ */}
