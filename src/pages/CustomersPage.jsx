@@ -1,18 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useReactTable, getCoreRowModel, flexRender, getFilteredRowModel } from '@tanstack/react-table';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Typography,
-  Box,
-  Button,
-  IconButton,
-  TextField,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+  Typography, Box, Button, IconButton, TextField,
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
 import useInventoryStore from '../stores/inventoryStore'; 
@@ -20,17 +10,14 @@ import CustomerForm from '../components/customers/CustomerForm';
 import ConfirmationDialog from '../components/common/ConfirmationDialog';
 
 const CustomersPage = () => {
-  // ดึงข้อมูลและ Actions มาจาก Store (ตอนนี้ปลอดภัยแล้ว)
   const customers = useInventoryStore((state) => state.customers);
   const deleteCustomer = useInventoryStore((state) => state.deleteCustomer);
   
-  // State สำหรับควบคุม UI
   const [globalFilter, setGlobalFilter] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState(null);
   const [customerToDelete, setCustomerToDelete] = useState(null);
 
-  // Handlers
   const handleOpenForm = useCallback((customer = null) => {
     setCustomerToEdit(customer);
     setIsFormOpen(true);
@@ -56,7 +43,6 @@ const CustomersPage = () => {
     }
   }, [customerToDelete, deleteCustomer, handleCloseDeleteDialog]);
 
-  // การเตรียมข้อมูลสำหรับตาราง
   const columns = useMemo(() => [
     { accessorKey: 'name', header: 'Customer Name' },
     { accessorKey: 'phone', header: 'Phone' },
@@ -66,12 +52,8 @@ const CustomersPage = () => {
       header: 'Actions',
       cell: ({ row }) => (
         <Box>
-          <IconButton size="small" color="primary" onClick={() => handleOpenForm(row.original)}>
-            <Edit fontSize="inherit" />
-          </IconButton>
-          <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(row.original)}>
-            <Delete fontSize="inherit" />
-          </IconButton>
+          <IconButton size="small" color="primary" onClick={() => handleOpenForm(row.original)}><Edit fontSize="inherit" /></IconButton>
+          <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(row.original)}><Delete fontSize="inherit" /></IconButton>
         </Box>
       ),
     },
@@ -92,11 +74,8 @@ const CustomersPage = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h4" gutterBottom>Customer List</Typography>
-        <Button variant="contained" color="primary" onClick={() => handleOpenForm()}>
-          Add New Customer
-        </Button>
+        <Button variant="contained" color="primary" onClick={() => handleOpenForm()}>Add New Customer</Button>
       </Box>
-
       <Box mb={2}>
         <TextField
           value={globalFilter ?? ''}
@@ -107,16 +86,13 @@ const CustomersPage = () => {
           fullWidth
         />
       </Box>
-
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
-                  <TableCell key={header.id} sx={{ fontWeight: 'bold' }}>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableCell>
+                  <TableCell key={header.id} sx={{ fontWeight: 'bold' }}>{flexRender(header.column.columnDef.header, header.getContext())}</TableCell>
                 ))}
               </TableRow>
             ))}
@@ -125,22 +101,14 @@ const CustomersPage = () => {
             {table.getRowModel().rows.map(row => (
               <TableRow key={row.id}>
                 {row.getVisibleCells().map(cell => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
+                  <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                 ))}
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
-
-      <CustomerForm 
-        open={isFormOpen} 
-        handleClose={handleCloseForm}
-        customerToEdit={customerToEdit}
-      />
-
+      <CustomerForm open={isFormOpen} handleClose={handleCloseForm} customerToEdit={customerToEdit} />
       <ConfirmationDialog
         open={!!customerToDelete}
         onClose={handleCloseDeleteDialog}
