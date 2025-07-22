@@ -1,166 +1,149 @@
 import { create } from 'zustand';
-import { persist, subscribeWithSelector } from 'zustand/middleware';
+// 1. Import เครื่องมือสำหรับติดต่อกับ Firestore
+import { db } from '../firebaseConfig';
+import { 
+  collection, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc 
+} from 'firebase/firestore';
 
-const generateId = (prefix) => `${prefix}${Date.now()}`;
+const useInventoryStore = create((set, get) => ({
+  //================== STATE ==================
+  // 2. เปลี่ยนข้อมูลเริ่มต้นให้เป็นค่าว่างทั้งหมด เพราะเราจะดึงมาจาก Firebase
+  products: [],
+  customers: [],
+  sales: [],
+  notifications: [],
+  isLoading: true, // เพิ่ม State สำหรับบอกสถานะกำลังโหลดข้อมูล
 
-const useInventoryStore = create(
-  subscribeWithSelector(
-    persist(
-      (set, get) => ({
-        //================== STATE ==================
-        products: [
-          { id: 1, name: 'iPhone 14 Pro', category: 'Electronics', quantity: 50, price: 999, lowStockThreshold: 10 },
-          { id: 2, name: 'MacBook Air M2', category: 'Electronics', quantity: 5, price: 1199, lowStockThreshold: 10 },
-        ],
-        customers: [
-          { id: 'C1721479200000', name: 'บริษัท A จำกัด', phone: '081-234-5678', email: 'contact@a.com' },
-          { id: 'C1721479200001', name: 'คุณสมชาย ใจดี', phone: '089-876-5432', email: 'somchai@email.com' },
-        ],
-        sales: [],
-        notifications: [],
-        // สถานะพิเศษสำหรับป้องกัน hydration error
-        _isHydrated: false,
-        _isClient: false,
+  //================== ACTIONS ==================
 
-        //================== ACTIONS ==================
-        // เมื่อแอปโหลดเสร็จในฝั่ง client
-        setClientReady: () => {
-          console.log('🔧 [Store] Client is ready');
-          set({ _isClient: true });
-        },
+  // --- 3. สร้าง Action ใหม่สำหรับดึงข้อมูลเริ่มต้นจาก Firebase ---
+  fetchInitialData: async () => {
+    set({ isLoading: true });
+    try {
+      const productsSnapshot = await getDocs(collection(db, "products"));
+      const productsData = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const customersSnapshot = await getDocs(collection(db, "customers"));
+      const customersData = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // เมื่อข้อมูลถูก hydrate เสร็จ
-        setHydrated: (status) => {
-          console.log('🔧 [Store] Hydration status:', status);
-          set({ _isHydrated: status });
-        },
+      const salesSnapshot = await getDocs(collection(db, "sales"));
+      const salesData = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // ฟังก์ชันสำหรับดึงข้อมูลอย่างปลอดภัย
-        getSafeCustomers: () => {
-          const state = get();
-          if (!state._isClient || !state._isHydrated) {
-            console.log('🔧 [Store] Not ready, returning empty array');
-            return [];
-          }
-          return Array.isArray(state.customers) ? state.customers : [];
-        },
+      set({ 
+        products: productsData, 
+        customers: customersData, 
+        sales: salesData, 
+        isLoading: false 
+      });
+    } catch (error) {
+      console.error("Error fetching initial data:", error);
+      set({ isLoading: false });
+    }
+  },
 
-        getSafeProducts: () => {
-          const state = get();
-          if (!state._isClient || !state._isHydrated) {
-            return [];
-          }
-          return Array.isArray(state.products) ? state.products : [];
-        },
-        
-        addProduct: (product) => {
-          const newProduct = { ...product, id: generateId('P') };
-          set((state) => ({ products: [...state.products, newProduct] }));
-          get().addNotification({ type: 'success', message: `Product "${product.name}" added.` });
-        },
-        updateProduct: (id, updatedProduct) => {
-          set((state) => ({
-            products: state.products.map(p => p.id === id ? { ...p, ...updatedProduct } : p)
-          }));
-          get().addNotification({ type: 'info', message: `Product "${updatedProduct.name}" updated.` });
-        },
-        deleteProduct: (id) => {
-          const product = get().products.find(p => p.id === id);
-          set((state) => ({ products: state.products.filter(p => p.id !== id) }));
-          if (product) get().addNotification({ type: 'warning', message: `Product "${product.name}" deleted.` });
-        },
-        addCustomer: (customer) => {
-          const newCustomer = { ...customer, id: generateId('C') };
-          set((state) => ({ customers: [...state.customers, newCustomer] }));
-          get().addNotification({ type: 'success', message: `Customer "${customer.name}" added.` });
-        },
-        updateCustomer: (id, updatedCustomer) => {
-          set((state) => ({
-            customers: state.customers.map(c => c.id === id ? { ...c, ...updatedCustomer } : c)
-          }));
-          get().addNotification({ type: 'info', message: `Customer "${updatedCustomer.name}" updated.` });
-        },
-        deleteCustomer: (id) => {
-          const customer = get().customers.find(c => c.id === id);
-          set((state) => ({ customers: state.customers.filter(c => c.id !== id) }));
-          if (customer) get().addNotification({ type: 'warning', message: `Customer "${customer.name}" deleted.` });
-        },
-        createSaleOrder: (saleData) => {
-          const totalAmount = saleData.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-          const newSale = {
-            ...saleData,
-            id: generateId('S'),
-            date: new Date().toISOString().split('T')[0],
-            totalAmount,
-          };
-          set((state) => ({ sales: [newSale, ...state.sales] }));
-          newSale.items.forEach(item => {
-            const product = get().products.find(p => p.id === item.productId);
-            if (product) {
-              const newQuantity = product.quantity - item.quantity;
-              get().updateProduct(item.productId, { ...product, quantity: newQuantity });
-            }
-          });
-          get().addNotification({ type: 'success', message: `Sale ${newSale.id} created.` });
-        },
-        addNotification: (notification) => set((state) => ({ notifications: [...state.notifications, { ...notification, id: Date.now() }] })),
-        removeNotification: (id) => set((state) => ({ notifications: state.notifications.filter(n => n.id !== id) })),
-      }),
-      {
-        name: 'inventory-storage-v3', // เปลี่ยนชื่อเพื่อล้างข้อมูลเก่า
-        partialize: (state) => ({
-          products: state.products,
-          customers: state.customers,
-          sales: state.sales,
-        }),
-        onRehydrateStorage: () => {
-          console.log('🔧 [Store] Starting rehydration...');
-          return (state, error) => {
-            if (error) {
-              console.error('🔧 [Store] Rehydration error:', error);
-              return;
-            }
-            
-            console.log('🔧 [Store] Rehydration complete, validating data...');
-            
-            // ตรวจสอบและแก้ไขข้อมูลที่อาจเสียหาย
-            if (!Array.isArray(state.customers)) {
-              console.warn('🔧 [Store] Customers data corrupted, resetting...');
-              state.customers = [
-                { id: 'C1721479200000', name: 'บริษัท A จำกัด', phone: '081-234-5678', email: 'contact@a.com' },
-                { id: 'C1721479200001', name: 'คุณสมชาย ใจดี', phone: '089-876-5432', email: 'somchai@email.com' },
-              ];
-            }
-            
-            if (!Array.isArray(state.products)) {
-              console.warn('🔧 [Store] Products data corrupted, resetting...');
-              state.products = [
-                { id: 1, name: 'iPhone 14 Pro', category: 'Electronics', quantity: 50, price: 999, lowStockThreshold: 10 },
-                { id: 2, name: 'MacBook Air M2', category: 'Electronics', quantity: 5, price: 1199, lowStockThreshold: 10 },
-              ];
-            }
-            
-            if (!Array.isArray(state.sales)) {
-              state.sales = [];
-            }
-            
-            console.log('🔧 [Store] Data validated, customers:', state.customers.length);
-            
-            // ตั้งสถานะ hydrated
-            state._isHydrated = true;
-            state.setHydrated(true);
-          };
-        },
+  // --- 4. แก้ไข Actions ทั้งหมดให้ทำงานกับ Firebase ---
+  addProduct: async (productData) => {
+    try {
+      const docRef = await addDoc(collection(db, "products"), productData);
+      const newProduct = { id: docRef.id, ...productData };
+      set((state) => ({ products: [...state.products, newProduct] }));
+      get().addNotification({ type: 'success', message: `Product "${productData.name}" added.` });
+    } catch (error) {
+      console.error("Error adding product:", error);
+      get().addNotification({ type: 'error', message: 'Failed to add product.' });
+    }
+  },
+  updateProduct: async (id, updatedData) => {
+    const productDoc = doc(db, "products", id);
+    try {
+      await updateDoc(productDoc, updatedData);
+      set((state) => ({
+        products: state.products.map(p => p.id === id ? { ...p, ...updatedData } : p)
+      }));
+      get().addNotification({ type: 'info', message: `Product "${updatedData.name}" updated.` });
+    } catch (error) {
+      console.error("Error updating product:", error);
+      get().addNotification({ type: 'error', message: 'Failed to update product.' });
+    }
+  },
+  deleteProduct: async (id) => {
+    const product = get().products.find(p => p.id === id);
+    const productDoc = doc(db, "products", id);
+    try {
+      await deleteDoc(productDoc);
+      set((state) => ({ products: state.products.filter(p => p.id !== id) }));
+      if (product) get().addNotification({ type: 'warning', message: `Product "${product.name}" deleted.` });
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      get().addNotification({ type: 'error', message: 'Failed to delete product.' });
+    }
+  },
+
+  addCustomer: async (customerData) => {
+    try {
+      const docRef = await addDoc(collection(db, "customers"), customerData);
+      const newCustomer = { id: docRef.id, ...customerData };
+      set((state) => ({ customers: [...state.customers, newCustomer] }));
+      get().addNotification({ type: 'success', message: `Customer "${customerData.name}" added.` });
+    } catch (error) {
+      console.error("Error adding customer:", error);
+      get().addNotification({ type: 'error', message: 'Failed to add customer.' });
+    }
+  },
+  
+  updateCustomer: async (id, updatedData) => {
+    const customerDoc = doc(db, "customers", id);
+    try {
+      await updateDoc(customerDoc, updatedData);
+      set((state) => ({
+        customers: state.customers.map(c => c.id === id ? { ...c, ...updatedData } : c)
+      }));
+      get().addNotification({ type: 'info', message: `Customer "${updatedData.name}" updated.` });
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      get().addNotification({ type: 'error', message: 'Failed to update customer.' });
+    }
+  },
+  deleteCustomer: async (id) => {
+    const customer = get().customers.find(c => c.id === id);
+    const customerDoc = doc(db, "customers", id);
+    try {
+      await deleteDoc(customerDoc);
+      set((state) => ({ customers: state.customers.filter(c => c.id !== id) }));
+      if (customer) get().addNotification({ type: 'warning', message: `Customer "${customer.name}" deleted.` });
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      get().addNotification({ type: 'error', message: 'Failed to delete customer.' });
+    }
+  },
+  createSaleOrder: async (saleData) => {
+    try {
+      const docRef = await addDoc(collection(db, "sales"), saleData);
+      const newSale = { id: docRef.id, ...saleData };
+      set((state) => ({ sales: [...state.sales, newSale] }));
+
+      for (const item of saleData.items) {
+        const product = get().products.find(p => p.id === item.productId);
+        if (product) {
+          const newQuantity = product.quantity - item.quantity;
+          await get().updateProduct(item.productId, { quantity: newQuantity });
+        }
       }
-    )
-  )
-);
-
-// ตั้งสถานะ client ready เมื่อโหลดครั้งแรก
-if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    useInventoryStore.getState().setClientReady();
-  }, 100);
-}
+      get().addNotification({ type: 'success', message: `Sale order created successfully.` });
+    } catch (error) {
+      console.error("Error creating sale order:", error);
+      get().addNotification({ type: 'error', message: 'Failed to create sale order.' });
+    }
+  },
+  
+  // --- Notification Actions (คงเดิม) ---
+  addNotification: (notification) => set((state) => ({ notifications: [...state.notifications, { ...notification, id: Date.now() }] })),
+  removeNotification: (id) => set((state) => ({ notifications: state.notifications.filter(n => n.id !== id) })),
+}));
 
 export default useInventoryStore;
