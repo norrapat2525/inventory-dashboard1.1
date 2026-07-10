@@ -6,6 +6,7 @@ import TransactionsPage from '../pages/TransactionsPage'; // ✅ แก้ไข
 import CustomersPage from '../pages/CustomersPage';
 import SalesPage from '../pages/SalesPage';
 import ReportsPage from '../pages/ReportsPage';
+import PlantingPlannerPage from '../pages/PlantingPlannerPage';
 
 const AppRoutes = () => {
   return (
@@ -17,6 +18,7 @@ const AppRoutes = () => {
       <Route path="/sales" element={<SalesPage />} />
       <Route path="/transactions" element={<TransactionsPage />} />
       <Route path="/reports" element={<ReportsPage />} />
+      <Route path="/planner" element={<PlantingPlannerPage />} />
     </Routes>
   );
 };

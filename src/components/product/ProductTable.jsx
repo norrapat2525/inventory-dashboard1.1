@@ -8,6 +8,7 @@ import { Edit, Delete } from '@mui/icons-material';
 import useInventoryStore from '../../stores/inventoryStore';
 import ProductForm from './ProductForm';
 import ConfirmationDialog from '../common/ConfirmationDialog';
+import { getMarketLinks } from '../../data/productSchema';
 
 const ProductTable = () => {
   const products = useInventoryStore((state) => state.products);
@@ -60,6 +61,31 @@ const ProductTable = () => {
         const total = (Number(row.original.quantity) || 0) * (Number(row.original.price) || 0);
         return `$${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
+    },
+    { id: 'marketLinks', header: 'ลิงก์ตลาด', cell: ({ row }) => {
+        // LANE A1: ปุ่มเปิดหน้าสินค้าบนตลาดออนไลน์ (แสดงเฉพาะตลาดที่กรอกลิงก์ไว้)
+        const links = getMarketLinks(row.original);
+        if (links.length === 0) {
+          return <Typography variant="caption" color="text.disabled">—</Typography>;
+        }
+        return (
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+            {links.map((link) => (
+              <Chip
+                key={link.key}
+                label={link.label}
+                size="small"
+                clickable
+                component="a"
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ bgcolor: link.color, color: '#fff', '&:hover': { bgcolor: link.color, opacity: 0.85 } }}
+              />
+            ))}
+          </Box>
+        );
+      },
     },
     { id: 'actions', header: 'Actions', cell: ({ row }) => (
         <Box sx={{ display: 'flex' }}>

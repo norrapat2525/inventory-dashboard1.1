@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider, Drawer, AppBar, Toolbar, IconButton, CssBaseline } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
-import { Dashboard, Inventory, Receipt, Assessment, Group, Menu as MenuIcon } from '@mui/icons-material';
+import { Dashboard, Inventory, Receipt, Assessment, Group, Agriculture, Menu as MenuIcon } from '@mui/icons-material';
 
 const drawerWidth = 240;
 
@@ -9,6 +9,7 @@ const menuItems = [
   { text: 'Overview', icon: <Dashboard />, path: '/overview' },
   { text: 'Products', icon: <Inventory />, path: '/products' },
   { text: 'Customers', icon: <Group />, path: '/customers' },
+  { text: 'วางแผนปลูก', icon: <Agriculture />, path: '/planner' },
   { text: 'Transactions', icon: <Receipt />, path: '/transactions' },
   { text: 'Reports', icon: <Assessment />, path: '/reports' },
 ];
