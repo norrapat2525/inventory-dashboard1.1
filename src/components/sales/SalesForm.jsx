@@ -132,18 +132,18 @@ const SalesForm = ({ open, handleClose, customers = [], products = [] }) => {
   };
 
   // บันทึกการขาย
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) {
       return;
     }
 
     try {
       const saleData = prepareSaleData();
-      createSaleOrder(saleData);
+      await createSaleOrder(saleData);
       handleClose();
     } catch (error) {
       console.error('Error creating sale order:', error);
-      setErrors({ general: 'Error creating sale order. Please try again.' });
+      setErrors({ general: error.message || 'Error creating sale order. Please try again.' });
     }
   };
 

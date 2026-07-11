@@ -111,6 +111,57 @@ const useInventoryStore = create((set, get) => ({
     }
   },
   
+  createSaleOrder: async (saleData) => {
+    try {
+      // Verify there is enough stock before committing the sale.
+      const currentProducts = get().products;
+      for (const item of saleData.items) {
+        const product = currentProducts.find(p => p.id === item.productId);
+        if (!product) {
+          throw new Error(`Product "${item.productName || item.productId}" not found.`);
+        }
+        if (item.quantity > (product.quantity || 0)) {
+          throw new Error(`Not enough stock for "${product.name}". Available: ${product.quantity || 0}.`);
+        }
+      }
+
+      // Normalise the payment status into the capitalised form the UI expects.
+      const rawStatus = saleData.paymentStatus || 'paid';
+      const status = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+
+      const saleRecord = {
+        ...saleData,
+        status,
+        date: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString(),
+      };
+
+      const docRef = await addDoc(collection(db, "sales"), saleRecord);
+      const newSale = { id: docRef.id, ...saleRecord };
+
+      // Decrement stock for each sold item, both in Firestore and local state.
+      await Promise.all(saleData.items.map(item => {
+        const product = get().products.find(p => p.id === item.productId);
+        const newQuantity = (product.quantity || 0) - item.quantity;
+        return updateDoc(doc(db, "products", item.productId), { quantity: newQuantity });
+      }));
+
+      set((state) => ({
+        sales: [...state.sales, newSale],
+        products: state.products.map(p => {
+          const soldItem = saleData.items.find(i => i.productId === p.id);
+          return soldItem ? { ...p, quantity: (p.quantity || 0) - soldItem.quantity } : p;
+        }),
+      }));
+
+      get().addNotification({ type: 'success', message: `Sale order for "${saleData.customerName}" created.` });
+      return newSale;
+    } catch (error) {
+      get().addNotification({ type: 'error', message: error.message || 'Failed to create sale order.' });
+      throw error;
+    }
+  },
+
   addNotification: (notification) => set((state) => ({ notifications: [...state.notifications, { ...notification, id: Date.now() }] })),
   removeNotification: (id) => set((state) => ({ notifications: state.notifications.filter(n => n.id !== id) })),
 }));
